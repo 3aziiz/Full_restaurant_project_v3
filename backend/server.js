@@ -6,7 +6,7 @@ const dotenv = require('dotenv');
 // Import script
 const createAdminUser = require('./utils/createAdmin');
 
-
+const adminRoutes = require('./routes/adminRoutes');
 const authRoutes = require('./routes/auth');
 const managerRequestRoutes = require('./routes/managerRequestRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
@@ -26,6 +26,8 @@ app.use(cors({
 // Middleware
 app.use(express.json());
 
+//admin routes
+app.use('/api/admin', adminRoutes);
 
 
 // Register Routes

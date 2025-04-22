@@ -58,6 +58,8 @@ export const apiSlice = createApi({
       credentials: "include",
      })
     }),
+
+
     resetPassword: builder.mutation({
       query: ({ token, newPassword }) => ({
         url: 'api/auth/reset-password',
@@ -65,6 +67,8 @@ export const apiSlice = createApi({
         body: { token, newPassword },
       }),
     }),
+
+
     getProfile: builder.query({
       query: () => ({
         url: 'api/users/profile',
@@ -81,6 +85,8 @@ export const apiSlice = createApi({
         credentials: 'include',
       }),
     }),
+
+
     updateName: builder.mutation({
       query: (data) => ({
         url: 'api/users/profile/updateName',
@@ -89,10 +95,42 @@ export const apiSlice = createApi({
         credentials: 'include',
       }),
       invalidatesTags: ['User']
-    })
-  }),
+    }),
 
-  });
+
+    getAllUsers: builder.query({
+      query: () => ({
+        url: 'api/admin/users',
+        method: 'GET',
+        credentials: "include",
+      }),
+      providesTags: ['Users'],
+    }),
+
+    deleteUser: builder.mutation({
+      query: (userId) => ({
+        url: `api/admin/users/${userId}`,
+        method: 'DELETE',
+        credentials: "include",
+      }),
+      invalidatesTags: ['Users'],
+    }),
+
+
+
+
+
+
+    
+
+
+
+
+
+
+  }),
+});
+  
 
 
 export const { 
@@ -105,4 +143,6 @@ export const {
   useGetProfileQuery,
   useUpdateAvatarMutation,
   useUpdateNameMutation,
+  useGetAllUsersQuery,
+  useDeleteUserMutation,
 } = apiSlice;
