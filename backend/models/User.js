@@ -27,7 +27,11 @@ const userSchema = new mongoose.Schema({
   },
   resetTokenExpire: {
     type: Date,
-  }
+  },
+  avatar: {
+    type: String,
+    default: '', // or provide a default profile picture URL
+  },
 });
 
 // Check if password is already hashed

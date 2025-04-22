@@ -29,24 +29,24 @@ import { useLogoutMutation } from "../../slices/apiSlice";
 import { useNavigate, Link } from "react-router-dom";
 
 import { Html5QrcodeScanner } from "html5-qrcode";
-import { authlogout, showLogin } from "../../slices/authSlice";
-
+import { logout, showLogin } from "../../slices/authSlice";
+import { persistor } from "../../store";
 
 function ProfileMenu({setShowLogin}) {
   const dispatch=useDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const closeMenu = () => setIsMenuOpen(false);
   const navigate = useNavigate();
-  const [logout, { isLoading }] = useLogoutMutation();
-
-const handleLogout =async()=>{
-  const res= await logout();
-  console.log(res);
-  // setShowLogin(true);
-  dispatch(showLogin());
-  dispatch(authlogout());
+  const [logoutApiCall, { isLoading }] = useLogoutMutation();
+  const handleLogout = async () => {
+    const res = await logoutApiCall();
+    console.log(res);
+    dispatch(logout());
+    dispatch(showLogin()); // Optional if you want to show the login modal
+    persistor.purge();
+    navigate("/");
+  };
   
-}
   return (
     <Menu open={isMenuOpen} handler={setIsMenuOpen} placement="bottom-end">
       <MenuHandler>

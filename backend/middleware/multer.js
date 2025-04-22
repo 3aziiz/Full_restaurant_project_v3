@@ -1,19 +1,32 @@
-// middleware/multer.js
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('../utils/cloudinary'); // your configured cloudinary instance
+const cloudinary = require('../utils/cloudinary');
 
-// Setup Cloudinary storage
-const storage = new CloudinaryStorage({
+// 🟢 Storage for restaurant images
+const restaurantStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'restaurants', // Folder in Cloudinary
+    folder: 'restaurants',
     allowed_formats: ['jpg', 'jpeg', 'png'],
     transformation: [{ width: 800, height: 600, crop: 'limit' }],
   },
 });
 
-// Middleware to handle multi-image uploads
-const upload = multer({ storage });
+// 🟣 Storage for avatar images
+const avatarStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'avatars',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+    transformation: [{ width: 400, height: 400, crop: 'fill' }], // square avatar
+  },
+});
 
-module.exports = upload;
+// 🧾 Exports
+const uploadRestaurant = multer({ storage: restaurantStorage });
+const uploadAvatar = multer({ storage: avatarStorage });
+
+module.exports = {
+  uploadRestaurant,
+  uploadAvatar,
+};

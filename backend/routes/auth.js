@@ -10,5 +10,5 @@ router.post('/login', login);
 router.post('/changePassword', authMiddleware, changePassword);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
-router.post('/logout', authMiddleware, logout);
+router.post('/logout', logout);
 module.exports = router;

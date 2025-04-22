@@ -17,7 +17,7 @@ const Home = () => {
   const keyword = searchParams.get('keyword') || '';
 
   return (
-    <div>
+    <div className="max-w-[1400px] mx-auto px-4">
       <Header />
       <OfferSlider />
       {/* Uncomment the lines below if you need to use these components */}

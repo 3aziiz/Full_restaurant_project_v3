@@ -22,7 +22,7 @@ const ChangePassword = () => {
     if (!userInfo) {
       // Redirect to login if user is not authenticated
       // You might want to use react-router's navigate here
-      window.location.href = '/login';
+      navigate("/");
     }
   }, [userInfo]);
 

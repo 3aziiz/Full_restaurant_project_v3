@@ -11,9 +11,9 @@ function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-20 pt-8 pb-6">
+    <footer className="relative w-full mt-20 pt-8 pb-6">
       <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black opacity-95"></div>
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex flex-wrap">
           <div className="w-full lg:w-6/12 px-4">
             <img
@@ -112,7 +112,7 @@ function Footer() {
                   ripple={true}
                   className="rounded-full bg-[#ff6347]"
                 >
-                  <Link to="/partner" className="text-white ">
+                  <Link to="/partner" className="text-white">
                     Click Here!
                   </Link>
                 </Button>

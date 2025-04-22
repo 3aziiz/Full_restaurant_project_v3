@@ -65,8 +65,35 @@ export const apiSlice = createApi({
         body: { token, newPassword },
       }),
     }),
+    getProfile: builder.query({
+      query: () => ({
+        url: 'api/users/profile',
+        method: 'GET',
+        credentials: 'include',
+      }),
+    }),
+    
+    updateAvatar: builder.mutation({
+      query: (data) => ({
+        url: 'api/users/avatar',
+        method: 'PUT',
+        body: data,
+        credentials: 'include',
+      }),
+    }),
+    updateName: builder.mutation({
+      query: (data) => ({
+        url: 'api/users/profile/updateName',
+        method: 'PUT',
+        body: { name: data.name },
+        credentials: 'include',
+      }),
+      invalidatesTags: ['User']
+    })
   }),
-});
+
+  });
+
 
 export const { 
   useLoginMutation, 
@@ -75,4 +102,7 @@ export const {
   useLogoutMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
+  useGetProfileQuery,
+  useUpdateAvatarMutation,
+  useUpdateNameMutation,
 } = apiSlice;
