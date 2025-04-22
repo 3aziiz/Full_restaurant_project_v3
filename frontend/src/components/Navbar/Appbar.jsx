@@ -25,7 +25,7 @@ import FastfoodTwoToneIcon from '@mui/icons-material/FastfoodTwoTone';
 import { assets } from "../../assets/assets";
 import "boxicons";
 import { useDispatch, useSelector } from "react-redux";
-import { useLogoutMutation } from "../../slices/apiSlice";
+import { useLogoutMutation,useGetProfileQuery } from "../../slices/apiSlice";
 import { useNavigate, Link } from "react-router-dom";
 
 import { Html5QrcodeScanner } from "html5-qrcode";
@@ -38,6 +38,7 @@ function ProfileMenu({setShowLogin}) {
   const closeMenu = () => setIsMenuOpen(false);
   const navigate = useNavigate();
   const [logoutApiCall, { isLoading }] = useLogoutMutation();
+  const { data: userData, refetch, error } = useGetProfileQuery();
   const handleLogout = async () => {
     const res = await logoutApiCall();
     console.log(res);
@@ -55,13 +56,13 @@ function ProfileMenu({setShowLogin}) {
           color="blue-gray"
           className="flex items-center gap-1 rounded-full py-0.5 pr-2 pl-0.5"
         >
-          <Avatar
-            variant="circular"
-            size="sm"
-            alt="Profile"
-            className="border border-gray-900 p-0.5"
-            src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?auto=format&fit=crop&w=1480&q=80"
-          />
+         <Avatar
+  variant="circular"
+  size="sm"
+  alt="Profile"
+  className="border border-gray-900 p-0.5"
+  src={userData && userData.avatar ? userData.avatar : "https://images.unsplash.com/photo-1633332755192-727a05c4013d?auto=format&fit=crop&w=1480&q=80"}
+/>
           <ChevronDownIcon
             strokeWidth={2.5}
             className={`h-3 w-3 transition-transform ${
