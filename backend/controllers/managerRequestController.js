@@ -9,13 +9,7 @@ exports.createRequest = async (req, res) => {
     const { 
       fullName, 
       email, 
-      password, 
-      restaurantName, 
-      description, 
-      location, 
-      phoneNumber, 
-      nbTables, 
-      menus
+      password 
     } = req.body;
 
     // Check if the request already exists
@@ -25,49 +19,34 @@ exports.createRequest = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Handle the uploaded images
-    const imageUrls = [];
-    if (req.files && req.files.length > 0) {
-      // Loop through each file and upload to Cloudinary
-      for (let i = 0; i < req.files.length; i++) {
-        const file = req.files[i];
-
-        // Upload the file to Cloudinary and retrieve the URL
-        const uploadResult = await cloudinary.uploader.upload(file.path);
-        imageUrls.push(uploadResult.secure_url); // Store the Cloudinary URL
-      }
-    }
-
-    // Create the manager request
+    // Create the manager request with only the essential fields
     const request = await ManagerRequest.create({
       fullName,
       email,
       password: hashedPassword,
-      restaurantName,
-      description,
-      location,
-      phoneNumber,
-      nbTables,
-      menus,
-      images: imageUrls, // Save Cloudinary image URLs
+      status: "pending" // Add a status field to track the request state
     });
 
-    res.status(201).json({ message: 'Request submitted successfully', request });
+    res.status(201).json({ 
+      success: true, 
+      message: 'Partner request submitted successfully', 
+      request: {
+        id: request._id,
+        fullName: request.fullName,
+        email: request.email,
+        status: request.status
+      } 
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error', 
+      error: err.message 
+    });
   }
 };
 
-// Get all requests (admin)
-exports.getAllRequests = async (req, res) => {
-  try {
-    const requests = await ManagerRequest.find();
-    res.status(200).json(requests);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-};
 
 // Approve request (admin)
 exports.approveRequest = async (req, res) => {

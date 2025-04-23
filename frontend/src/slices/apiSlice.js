@@ -117,14 +117,42 @@ export const apiSlice = createApi({
     }),
 
 
+    // New registerPartner mutation
+    registerPartner: builder.mutation({
+      query: (data) => ({
+        url: 'api/manager-requests/createRequest',  // Adjust endpoint as needed
+        method: 'POST',
+        body: data,
+        credentials: "include",
+      }),
+    }),
 
 
-
-
+    getAllRequests: builder.query({
+      query: () => ({
+        url: '/api/admin/requests',
+        method: 'GET',
+        credentials: "include",
+      }),
+    }),
     
+    approveRequest: builder.mutation({
+      query: (id) => ({
+        url: `api/admin/requests/approve/${id}`,
+        method: 'PATCH',
+        credentials: "include",
+      }),
+      invalidatesTags: ['Requests'],
+    }),
 
-
-
+    deleteRequest: builder.mutation({
+      query: (id) => ({
+        url: `api/admin/requests/delete/${id}`,
+        method: 'DELETE',
+        credentials: "include",
+      }),
+      invalidatesTags: ['Requests'],
+    }),
 
 
 
@@ -145,4 +173,8 @@ export const {
   useUpdateNameMutation,
   useGetAllUsersQuery,
   useDeleteUserMutation,
+  useRegisterPartnerMutation,
+  useGetAllRequestsQuery,
+  useApproveRequestMutation,
+  useDeleteRequestMutation,
 } = apiSlice;

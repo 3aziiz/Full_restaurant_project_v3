@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGetAllUsersQuery, useDeleteUserMutation } from '../../slices/apiSlice';
+import { useGetAllUsersQuery,
+          useDeleteUserMutation,
+          useGetAllRequestsQuery,
+          useApproveRequestMutation,
+          useDeleteRequestMutation,
+      } from '../../slices/apiSlice';
 import { toast } from 'react-toastify';
+import { Button } from "@material-tailwind/react";
+
+
+
 function Sidebar({ setView, currentView }) {
   const navigate = useNavigate();
   
@@ -12,7 +21,7 @@ function Sidebar({ setView, currentView }) {
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
-  const handleLogout = () => {
+  const handlegoback = () => {
     // You could add any logout logic here (clear tokens, etc.)
     navigate('/');
   };
@@ -55,7 +64,7 @@ function Sidebar({ setView, currentView }) {
           </div>
         </div>
         <button 
-          onClick={handleLogout}
+          onClick={handlegoback}
           className="mt-4 w-full px-4 py-2 text-sm text-blue-200 hover:text-white flex items-center justify-center rounded-lg hover:bg-blue-700/50 transition duration-200"
         >
           <span className="mr-2">⬅️</span> Go back
@@ -85,27 +94,44 @@ function StatCard({ title, value, icon, color }) {
 }
 
 function ManagerRequests() {
-  const [requests, setRequests] = useState([
-    { id: 1, fullName: 'John Doe', email: 'johndoe@example.com', restaurant: 'The Gourmet Kitchen', date: '2025-04-18' },
-    { id: 2, fullName: 'Jane Smith', email: 'janesmith@example.com', restaurant: 'Ocean Blue', date: '2025-04-19' },
-    { id: 3, fullName: 'Robert Johnson', email: 'robert@example.com', restaurant: 'Spice & Fire', date: '2025-04-20' },
-  ]);
-
-  const handleApprove = (id) => {
-    setRequests(requests.filter(req => req.id !== id));
+  const { data: requests = [], isLoading, isError, refetch } = useGetAllRequestsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+  
+  const [approveRequest] = useApproveRequestMutation();
+  const [deleteManagerRequest] = useDeleteRequestMutation();
+  
+  const handleApprove = async (id) => {
+    try {
+      await approveRequest(id).unwrap();
+     
+      console.log('Approved successfully');
+      toast.success("Manager registred successfully"); refetch();
+    } catch (err) {
+      console.error('Error approving request:', err);
+    }
+  };
+  const handleDelete = async (id) => {
+    try {
+      await deleteManagerRequest(id).unwrap();
+      toast.success('Request deleted successfully');refetch();
+      // Optionally re-fetch list if you're not using cache invalidation
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast.error('Failed to delete request');
+    }
   };
 
-  const handleDelete = (id) => {
-    setRequests(requests.filter(req => req.id !== id));
-  };
-
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error loading requests.</div>;
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-2xl font-semibold text-gray-800">Manager Requests</h3>
         <div className="text-sm text-gray-500">{requests.length} pending requests</div>
       </div>
-      
+
       {requests.length > 0 ? (
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           <div className="overflow-x-auto">
@@ -114,28 +140,33 @@ function ManagerRequests() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Restaurant</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {requests.map((request) => (
-                  <tr key={request.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{request.fullName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.restaurant}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button 
-                        onClick={() => handleApprove(request.id)}
-                        className="text-green-600 hover:text-green-900 bg-green-100 hover:bg-green-200 px-3 py-1 rounded-md mr-2 transition-colors duration-200"
-                      >
-                        Approve
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(request.id)}
-                        className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md transition-colors duration-200"
+                  <tr key={request._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{request.fullName}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{request.email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{request.status}</td>
+                    <td className="px-6 py-4 text-right text-sm font-medium">
+                    <Button
+                          size="sm"
+                          onClick={() => handleApprove(request._id)}
+                          disabled={request.status === 'approved'}
+                          className={`${
+                            request.status === 'approved'
+                              ? 'bg-gray-300 text-gray-700 cursor-not-allowed'
+                              : 'bg-green-500 hover:bg-green-600 text-white'
+                          }`}>  Approve
+                              
+                    </Button>
+
+
+                      <button
+                        onClick={() => handleDelete(request._id)}
+                        className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md"
                       >
                         Delete
                       </button>
@@ -156,6 +187,9 @@ function ManagerRequests() {
     </div>
   );
 }
+
+
+
 function Users() {
   const [searchTerm, setSearchTerm] = useState('');
 
