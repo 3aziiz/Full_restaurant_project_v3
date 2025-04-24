@@ -5,7 +5,7 @@ import ExploreMenu from '../../components/ExploreMenu/ExploreMenu';
 import FoodDisplay from '../../components/FoodDisplay/FoodDisplay';
 import AppDownload from '../../components/AppDownload/AppDownload';
 import OfferSlider from '../../components/OfferSlider/OfferSlider';
-import RestaurantCard from '../../components/Restaurant/restaurant_card/RestaurantCard';
+import RestaurantCard from '../../components/Restaurants/RestaurantCard';
 import { useLocation } from 'react-router-dom';
 
 const Home = () => {
@@ -23,7 +23,7 @@ const Home = () => {
       {/* Uncomment the lines below if you need to use these components */}
       {/* <ExploreMenu category={category} setCategory={setCategory} />
       <FoodDisplay category={category} />  */}
-      <RestaurantCard keyword={keyword}/>
+      <RestaurantCard />
       <AppDownload />
     </div>
   );

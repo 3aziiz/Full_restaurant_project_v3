@@ -154,3 +154,63 @@ exports.createRestaurant = async (req, res) => {
     });
   }
 };
+
+
+
+
+// get restaurant byID
+exports.getRestaurantById = async (req, res) => {
+  try {
+    const restaurantId = req.params.id;
+
+    // Find restaurant by ID
+    const restaurant = await Restaurant.findById(restaurantId);
+
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Restaurant not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: restaurant,
+    });
+  } catch (error) {
+    console.error('Error fetching restaurant:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch restaurant',
+    });
+  }
+};
+
+
+
+
+// Controller to get all restaurants
+exports.getAllRestaurants = async (req, res) => {
+  try {
+    // Fetch all restaurants from the database
+    const restaurants = await Restaurant.find();
+
+    if (restaurants.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No restaurants found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: restaurants,
+    });
+  } catch (error) {
+    console.error('Error fetching all restaurants:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch restaurants',
+    });
+  }
+};

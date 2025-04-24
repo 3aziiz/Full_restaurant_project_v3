@@ -26,6 +26,9 @@ import Payment from './components/Payment/Payment';
 import ResetPassword from './components/ResetPassword/ResetPassword';
 import { useSelector } from 'react-redux';
 
+
+import RestaurantDetail  from './components/Restaurants/RestaurantDetail';
+
 // Layout component that wraps routes with Appbar and Footer
 const MainLayout = ({ children, setShowLogin }) => {
   return (
@@ -72,6 +75,8 @@ const App = () => {
             <Route path="/reset-password" element={<ForgetPassword />} />
             <Route path="/vieworders" element={<OrderDetails />} />
             <Route path="/table/details" element={<TableBookingDetails />} />
+            <Route path="/restaurants/:id" element={<RestaurantDetail />} />
+
             
             {/* User Routes */}
             <Route path="/reset-password/new" element={<ResetPassword />} />
@@ -84,7 +89,7 @@ const App = () => {
               <Route path="/:id/book-table" element={<TableBooking />} />
               <Route path="/order" element={<PlaceOrder />} />
               <Route path="/order/:id" element={<Payment />} />
-              <Route path="/restaurant/:id/menu" element={<RestaurantMenu />} />
+              {/* <Route path="/restaurant/:id/menu" element={<RestaurantMenu />} /> */}
             </Route>
           </Routes>
         </MainLayout>

@@ -168,7 +168,24 @@ export const apiSlice = createApi({
     invalidatesTags: ['Restaurant'],
   }),
 
+//get restaurants 
+getRestaurants: builder.query({
+  query: () => ({
+    url: 'api/manager/restaurants', // Adjust to your endpoint for fetching restaurants
+    method: 'GET',
+    credentials: 'include',  // Include cookies if necessary
+  }),
+  providesTags: ['Restaurants'],
+}),
 
+getRestaurantById: builder.query({
+  query: (id) => ({
+    url: `api/manager/restaurant/${id}`,  // Adjust the endpoint to fetch a specific restaurant by ID
+    method: 'GET',
+    credentials: 'include',  // Include cookies if necessary
+  }),
+  providesTags: ['Restaurants'],
+}),
 
 
 
@@ -195,4 +212,6 @@ export const {
   useApproveRequestMutation,
   useDeleteRequestMutation,
   useCreateRestaurantMutation,
+  useGetRestaurantsQuery,
+  useGetRestaurantByIdQuery,
 } = apiSlice;
