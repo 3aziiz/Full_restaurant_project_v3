@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const fileUpload = require('express-fileupload');
 // Import script
 const createAdminUser = require('./utils/createAdmin');
 
@@ -10,12 +11,23 @@ const adminRoutes = require('./routes/adminRoutes');
 const authRoutes = require('./routes/auth');
 const managerRequestRoutes = require('./routes/managerRequestRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
-const userRoutes=require('./routes/userRoutes')
+const userRoutes=require('./routes/userRoutes');
+const managerRoutes = require('./routes/managerRoutes');
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 app.use(express.urlencoded({ extended: true }));
+
+// In your app.js or server.js
+app.use(fileUpload({
+  createParentPath: true,
+  useTempFiles: true,
+  tempFileDir: '/tmp/',
+  limits: { 
+    fileSize: 10 * 1024 * 1024 // 10MB max file size
+  }
+}));
 
 app.use(cookieParser()); 
 app.use(cors({
@@ -42,7 +54,8 @@ app.use('/api/restaurant', restaurantRoutes);
 
 app.use('/api/users',userRoutes);
 
-
+// manager routes
+app.use('/api/manager',managerRoutes);
 
 
 

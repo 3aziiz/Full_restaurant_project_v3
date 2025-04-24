@@ -155,6 +155,23 @@ export const apiSlice = createApi({
     }),
 
 
+   // Create restaurant
+   createRestaurant: builder.mutation({
+    query: (formData) => ({
+      url: 'api/manager/createRestaurant',
+      method: 'POST',
+      body: formData,
+      // Don't set Content-Type header, let the browser set it with the boundary for FormData
+      formData: true,
+      credentials: "include",
+    }),
+    invalidatesTags: ['Restaurant'],
+  }),
+
+
+
+
+
 
   }),
 });
@@ -177,4 +194,5 @@ export const {
   useGetAllRequestsQuery,
   useApproveRequestMutation,
   useDeleteRequestMutation,
+  useCreateRestaurantMutation,
 } = apiSlice;
