@@ -161,8 +161,7 @@ export const apiSlice = createApi({
       url: 'api/manager/createRestaurant',
       method: 'POST',
       body: formData,
-      // Don't set Content-Type header, let the browser set it with the boundary for FormData
-      formData: true,
+      
       credentials: "include",
     }),
     invalidatesTags: ['Restaurant'],
@@ -173,7 +172,7 @@ getRestaurants: builder.query({
   query: () => ({
     url: 'api/manager/restaurants', // Adjust to your endpoint for fetching restaurants
     method: 'GET',
-    credentials: 'include',  // Include cookies if necessary
+     // Include cookies if necessary
   }),
   providesTags: ['Restaurants'],
 }),
@@ -182,7 +181,7 @@ getRestaurantById: builder.query({
   query: (id) => ({
     url: `api/manager/restaurant/${id}`,  // Adjust the endpoint to fetch a specific restaurant by ID
     method: 'GET',
-    credentials: 'include',  // Include cookies if necessary
+      // Include cookies if necessary
   }),
   providesTags: ['Restaurants'],
 }),

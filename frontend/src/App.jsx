@@ -11,7 +11,7 @@ import Partner from './components/Partner/Partner';
 import RestaurantTemplate from './components/Restaurant/Explore_restaurant_page/RestaurantTemplate';
 import PrivateRoute from './components/PrivateRoute/PrivateRoute';
 import AdminDashboard from './components/Dashboards/AdminDashboard';
-import ManagerLayout from './components/Dashboards/ManagerDashboard';
+import ManagerDashboard from './components/Dashboards/ManagerDashboard';
 import { ThemeProvider } from '@material-tailwind/react';
 import { materialTheme } from './configs/theme';
 import { ToastContainer } from 'react-toastify';
@@ -47,11 +47,23 @@ const App = () => {
   const { openLogin } = useSelector((state) => state.auth);
   const location = useLocation();
   
-  // Check if current path is admin or manager dashboard
+  // // Check if current path is admin or manager dashboard
+  // const isFullScreenRoute = () => {
+  //   const path = location.pathname;
+  //   return path.startsWith('/admin') || path.startsWith('/manager');
+    
+  // };
+
   const isFullScreenRoute = () => {
     const path = location.pathname;
-    return path.startsWith('/admin') || path.startsWith('/manager');
+    // Match /restaurants/{id} format
+    const isRestaurantView = /^\/restaurants\/[^\/]+$/.test(path);
+    return path.startsWith('/admin') || path.startsWith('/manager') || isRestaurantView;
   };
+
+
+
+
 
   return (
     <ThemeProvider value={materialTheme}>
@@ -62,7 +74,8 @@ const App = () => {
         // Full screen routes without Appbar and Footer
         <Routes>
           <Route path="/admin/*" element={<AdminDashboard />} />
-          <Route path="/manager/*" element={<ManagerLayout />} />
+          <Route path="/manager/*" element={<ManagerDashboard />} />
+          <Route path="/restaurants/:id" element={<RestaurantDetail />} />
         </Routes>
       ) : (
         // Regular routes with Appbar and Footer
@@ -71,11 +84,15 @@ const App = () => {
             {/* Public routes */}
             <Route path="/" element={<Home />} exact />
             <Route path="/partner" element={<Partner />} />
+            
+           
             <Route path="/restaurant/:id/view" element={<RestaurantTemplate />} />
+
+
             <Route path="/reset-password" element={<ForgetPassword />} />
             <Route path="/vieworders" element={<OrderDetails />} />
             <Route path="/table/details" element={<TableBookingDetails />} />
-            <Route path="/restaurants/:id" element={<RestaurantDetail />} />
+           
 
             
             {/* User Routes */}

@@ -1,222 +1,425 @@
-// src/components/Restaurants/RestaurantTemplate.jsx
 import { useState } from 'react';
 
 export default function RestaurantTemplate({ restaurant }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  
+  // Handle case where menuItems might not exist
+  const menuItems = restaurant.menuItems || [];
   
   // Get unique categories
-  const categories = ['All', ...new Set(restaurant.menuItems.map(item => item.category))];
+  const categories = ['All', ...new Set(menuItems.map(item => item.category))];
   
   // Filter menu items by category
   const filteredMenuItems = activeCategory === 'All' 
-    ? restaurant.menuItems 
-    : restaurant.menuItems.filter(item => item.category === activeCategory);
+    ? menuItems 
+    : menuItems.filter(item => item.category === activeCategory);
+
+  // Handle case where images might not exist
+  const images = restaurant.images || [];
 
   // Image gallery navigation
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % restaurant.images.length);
+    if (images.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    }
   };
   
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + restaurant.images.length) % restaurant.images.length);
+    if (images.length > 0) {
+      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    }
+  };
+
+  // Review submission
+  const handleReviewChange = (e) => {
+    const { name, value } = e.target;
+    setNewReview(prev => ({ ...prev, [name]: name === 'rating' ? parseInt(value) : value }));
+  };
+
+  const submitReview = (e) => {
+    e.preventDefault();
+    if (!restaurant.user) {
+      // Trigger login modal
+      alert("Please login to leave a review");
+      return;
+    }
+    
+    if (!newReview.comment.trim()) {
+      alert("Please write a comment before submitting");
+      return;
+    }
+    
+    // This is a placeholder - implement actual review submission
+    alert("Review submitted successfully!");
+    setNewReview({ rating: 5, comment: '' });
+  };
+
+  // Book a table
+  const bookTable = () => {
+    if (!restaurant.user) {
+      // Trigger login modal
+      alert("Please login to book a table");
+      return;
+    }
+    
+    // Navigate to booking page - you'll need to implement this
+    alert("Navigate to booking page");
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      {/* Restaurant Header */}
-      <div className="bg-gray-900 text-white p-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2">{restaurant.name}</h1>
-          <p className="text-lg text-orange-400 mb-4">{restaurant.cuisine}</p>
-          <p className="mb-6 max-w-2xl">{restaurant.description}</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>{restaurant.location.address}</span>
-            </div>
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{restaurant.openingHours}</span>
-            </div>
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              <span>{restaurant.contact}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Restaurant Images Gallery */}
-      <div className="max-w-6xl mx-auto my-8 px-4">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Gallery</h2>
-        <div className="relative">
-          <div className="overflow-hidden rounded-lg h-96">
-            <img 
-              src={restaurant.images[currentImageIndex]} 
-              alt={`${restaurant.name} view ${currentImageIndex + 1}`}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          
-          {restaurant.images.length > 1 && (
-            <>
-              <button 
-                onClick={prevImage}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button 
-                onClick={nextImage}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              
-              <div className="flex justify-center mt-4 gap-2">
-                {restaurant.images.map((_, index) => (
-                  <button 
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`w-3 h-3 rounded-full ${index === currentImageIndex ? 'bg-orange-600' : 'bg-gray-300'}`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-      
-      {/* Menu Section */}
-      <div className="max-w-6xl mx-auto my-8 px-4">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">Our Menu</h2>
+    <div className="bg-white min-h-screen">
+      {/* Hero Section with Main Image */}
+      <div className="relative h-96 lg:h-[500px] w-full">
+        <div className="absolute inset-0 bg-black/40 z-10"></div>
+        <img 
+          src={images[currentImageIndex] || "/api/placeholder/1200/500"}
+          alt={restaurant.name}
+          className="w-full h-full object-cover"
+        />
         
-        {/* Category Tabs */}
-        <div className="flex overflow-x-auto pb-2 mb-6">
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`px-4 py-2 mr-2 rounded-md whitespace-nowrap transition-colors ${
-                activeCategory === category 
-                  ? 'bg-orange-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+        {/* Image Controls */}
+        {images.length > 1 && (
+          <>
+            <button 
+              onClick={prevImage}
+              className="absolute left-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-3 rounded-full z-20 transition-all"
+              aria-label="Previous image"
             >
-              {category}
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
-          ))}
-        </div>
+            <button 
+              onClick={nextImage}
+              className="absolute right-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-3 rounded-full z-20 transition-all"
+              aria-label="Next image"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
         
-        {/* Menu Items */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredMenuItems.map(item => (
-            <MenuItem key={item._id} item={item} />
-          ))}
-        </div>
-      </div>
-      
-      {/* Customer Feedback Section */}
-      <div className="max-w-6xl mx-auto my-8 px-4 pb-12">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">Customer Reviews</h2>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
-              <div>
-                <p className="font-semibold">Rajesh Kumar</p>
-                <div className="flex text-orange-400">
+        {/* Restaurant Info Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent text-white p-8 z-20">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-4xl lg:text-5xl font-bold mb-2">{restaurant.name}</h1>
+            <div className="flex items-center mb-2">
+              <p className="text-orange-400 font-medium mr-4">{restaurant.cuisine}</p>
+              <div className="flex items-center">
+                <div className="flex text-yellow-400 mr-1">
                   {[...Array(5)].map((_, i) => (
-                    <svg key={i} xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    <svg key={i} className="w-4 h-4" fill={i < Math.floor(restaurant.rating) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
                     </svg>
                   ))}
                 </div>
+                <span className="text-sm">{restaurant.rating} ({restaurant.totalReviews} reviews)</span>
               </div>
             </div>
-            <span className="text-gray-500 text-sm">2 days ago</span>
           </div>
-          <p className="text-gray-700">Amazing food and great service! The burger was juicy and the fries were perfectly crispy. Will definitely come back again.</p>
+        </div>
+        
+        {/* Image Thumbnails */}
+        {images.length > 1 && (
+          <div className="absolute bottom-28 left-0 right-0 px-8 z-30">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex gap-2 overflow-x-auto pb-2 max-w-full">
+                {images.map((image, index) => (
+                  <button 
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`w-16 h-16 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all ${
+                      index === currentImageIndex ? 'border-orange-500 scale-110' : 'border-transparent opacity-80'
+                    }`}
+                  >
+                    <img src={image} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Info & Description */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">About {restaurant.name}</h2>
+              <p className="text-gray-700 mb-6 leading-relaxed">{restaurant.description}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-gray-700">{restaurant.location?.address || 'Address not available'}</span>
+                </div>
+                <div className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-gray-700">{restaurant.openingHours || 'Hours not available'}</span>
+                </div>
+                <div className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span className="text-gray-700">{restaurant.contact || 'Contact not available'}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Menu Section */}
+            {menuItems.length > 0 && (
+              <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">Our Menu</h2>
+                  {/* Category Tabs */}
+                  <div className="flex overflow-x-auto space-x-2">
+                    {categories.map(category => (
+                      <button
+                        key={category}
+                        onClick={() => setActiveCategory(category)}
+                        className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors text-sm font-medium ${
+                          activeCategory === category 
+                            ? 'bg-orange-600 text-white' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Menu Items */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredMenuItems.map(item => (
+                    <MenuItem key={item._id || Math.random().toString()} item={item} />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Customer Reviews Section */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-2xl font-bold mb-6 text-gray-800">Customer Reviews</h2>
+              
+              {/* Leave a Review Section */}
+              <div className="mb-8 border-b border-gray-200 pb-8">
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">Leave a Review</h3>
+                <form onSubmit={submitReview}>
+                  <div className="mb-4">
+                    <label className="block text-gray-700 mb-2">Rating</label>
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button 
+                          type="button"
+                          key={star}
+                          onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
+                          className="text-2xl focus:outline-none"
+                        >
+                          <span className={star <= newReview.rating ? "text-yellow-400" : "text-gray-300"}>★</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label htmlFor="comment" className="block text-gray-700 mb-2">Your Review</label>
+                    <textarea
+                      id="comment"
+                      name="comment"
+                      value={newReview.comment}
+                      onChange={handleReviewChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      rows="4"
+                      placeholder="Share your experience..."
+                    ></textarea>
+                  </div>
+                  <button 
+                    type="submit"
+                    className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition"
+                  >
+                    Submit Review
+                  </button>
+                </form>
+              </div>
+              
+              {/* Reviews List */}
+              {restaurant.reviews && restaurant.reviews.length > 0 ? (
+                <div className="space-y-6">
+                  {restaurant.reviews.map(review => (
+                    <div key={review._id || Math.random().toString()} className="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center">
+                          <img 
+                            src={review.user?.avatar || "/api/placeholder/48/48"} 
+                            alt={review.user?.name || "User"} 
+                            className="w-12 h-12 rounded-full mr-4 object-cover"
+                          />
+                          <div>
+                            <p className="font-semibold text-gray-800">{review.user?.name || "Anonymous"}</p>
+                            <div className="flex text-yellow-400 mt-1">
+                              {[...Array(5)].map((_, i) => (
+                                <span key={i} className="text-lg">
+                                  {i < review.rating ? "★" : "☆"}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-gray-500 text-sm">
+                          {review.date ? new Date(review.date).toLocaleDateString() : "Date unavailable"}
+                        </span>
+                      </div>
+                      <p className="text-gray-700">{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">No reviews yet. Be the first to leave a review!</p>
+              )}
+            </div>
+          </div>
+          
+          {/* Right Column - Action Block */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-md p-6 sticky top-6">
+              <h3 className="text-xl font-bold mb-4 text-gray-800">Make a Reservation</h3>
+              <p className="text-gray-600 mb-6">Reserve your table now for an unforgettable dining experience.</p>
+              
+              <button 
+                onClick={bookTable}
+                className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 transition mb-4"
+              >
+                Book a Table
+              </button>
+              
+              <div className="text-center">
+                <p className="text-gray-500 text-sm mb-2">or call us directly at</p>
+                <a href={`tel:${restaurant.contact}`} className="text-orange-600 font-semibold text-lg hover:underline">
+                  {restaurant.contact || 'Contact not available'}
+                </a>
+              </div>
+              
+              <hr className="my-6 border-gray-200" />
+              
+              <div className="mb-4">
+                <h4 className="font-semibold text-gray-800 mb-2">Opening Hours</h4>
+                <p className="text-gray-700">{restaurant.openingHours || 'Hours not available'}</p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">Location</h4>
+                <p className="text-gray-700">{restaurant.location?.address || 'Address not available'}</p>
+                
+                {/* Map placeholder - would connect to actual map service */}
+                <div className="mt-4 rounded-lg overflow-hidden h-48 bg-gray-200">
+                  <img 
+                    src="/api/placeholder/400/200" 
+                    alt="Restaurant location map" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Menu Item Component (used within RestaurantTemplate)
+// Menu Item Component
 function MenuItem({ item }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const images = item.images || [];
   
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % item.images.length);
+    if (images.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    }
   };
   
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + item.images.length) % item.images.length);
+    if (images.length > 0) {
+      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="bg-white rounded-lg border border-gray-100 overflow-hidden hover:shadow-md transition group">
       {/* Item Images */}
       <div className="relative h-48">
-        {item.images && item.images.length > 0 ? (
+        {images.length > 0 ? (
           <>
             <img 
-              src={item.images[currentImageIndex]} 
+              src={images[currentImageIndex]} 
               alt={item.name} 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             
-            {item.images.length > 1 && (
+            {images.length > 1 && (
               <>
                 <button 
-                  onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-1 rounded-full"
+                  onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
                 <button 
-                  onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-1 rounded-full"
+                  onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
+                
+                {/* Image indicators */}
+                <div className="absolute bottom-2 left-0 right-0 flex justify-center space-x-1">
+                  {images.map((_, index) => (
+                    <div 
+                      key={index}
+                      className={`w-1.5 h-1.5 rounded-full ${index === currentImageIndex ? 'bg-white' : 'bg-white/50'}`}
+                    />
+                  ))}
+                </div>
               </>
             )}
+            
+            {item.popular && (
+              <div className="absolute top-2 left-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                Popular
+              </div>
+            )}
+            
+            <div className="absolute bottom-2 right-2 bg-orange-600 text-white font-bold px-3 py-1 rounded-full">
+              ${item.price?.toFixed(2) || 'N/A'}
+            </div>
           </>
         ) : (
           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
             <span className="text-gray-400">No image available</span>
           </div>
         )}
-        
-        <div className="absolute bottom-0 right-0 bg-orange-600 text-white px-3 py-1 font-bold">
-          ₹{item.price}
-        </div>
       </div>
       
       {/* Item Details */}
       <div className="p-4">
-        <h3 className="text-lg font-bold text-gray-800 mb-1">{item.name}</h3>
-        <p className="text-sm text-gray-500 mb-2">{item.category}</p>
-        <p className="text-gray-700 text-sm">{item.description}</p>
+        <h3 className="text-lg font-bold text-gray-800 mb-1">{item.name || 'Unnamed Item'}</h3>
+        <p className="text-sm text-orange-600 mb-2">{item.category || 'Uncategorized'}</p>
+        <p className="text-gray-600 text-sm line-clamp-2">{item.description || 'No description available'}</p>
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState , useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Button } from "@material-tailwind/react";
 import { useCreateRestaurantMutation } from '../../slices/apiSlice';
-
+import { useDispatch, useSelector } from "react-redux";
 function Sidebar({ setView, currentView }) {
   const navigate = useNavigate();
   
@@ -166,6 +166,15 @@ function MyRestaurants() {
 
 
 function CreateRestaurant() {
+  const { userInfo} = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+  useEffect(() => {
+    // Check if user exists and has manager role
+    if (!userInfo || userInfo.role !== 'manager') {
+      toast.error('You do not have permission to create restaurants');
+      navigate('/dashboard');
+    }
+  }, [userInfo, navigate]);
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -279,8 +288,11 @@ function CreateRestaurant() {
 
   const handleCreateRestaurant = async (e) => {
     e.preventDefault();
+
     
     try {
+      
+
       // Create FormData object to handle file uploads
       const formDataToSend = new FormData();
       
@@ -293,7 +305,8 @@ function CreateRestaurant() {
         // If you have coordinates, include them like this:
         // coordinates: [longitude, latitude]
       };
-      
+      formDataToSend.append('userId', userInfo._id); // Add user ID
+    formDataToSend.append('userRole', userInfo.role);
       // Convert location object to JSON string and append
       formDataToSend.append('location', JSON.stringify(locationData));
       
