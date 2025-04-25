@@ -1,10 +1,10 @@
 import { useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 export default function RestaurantTemplate({ restaurant }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState('All');
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
-  
+  const navigate = useNavigate();
   // Handle case where menuItems might not exist
   const menuItems = restaurant.menuItems || [];
   
@@ -144,9 +144,21 @@ export default function RestaurantTemplate({ restaurant }) {
           </div>
         )}
       </div>
+
+      <div className="flex items-center gap-4 ml-8 mt-10">
+        <button
+          onClick={() => navigate('/')}
+          className="bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-orange-600 transition-colors font-semibold"
+        >
+          Go Back
+        </button>
+        
+      </div>
+
       
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-8">
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Info & Description */}
           <div className="lg:col-span-2">
@@ -329,6 +341,7 @@ export default function RestaurantTemplate({ restaurant }) {
                     className="w-full h-full object-cover"
                   />
                 </div>
+                
               </div>
             </div>
           </div>

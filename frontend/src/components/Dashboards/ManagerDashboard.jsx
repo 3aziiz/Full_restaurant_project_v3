@@ -2,8 +2,15 @@ import { useState , useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Button } from "@material-tailwind/react";
-import { useCreateRestaurantMutation } from '../../slices/apiSlice';
-import { useDispatch, useSelector } from "react-redux";
+import { useCreateRestaurantMutation ,
+  useGetRestaurantsQuery ,
+  useDeleteRestaurantMutation ,
+  useUpdateRestaurantMutation
+} from '../../slices/apiSlice';
+import { useSelector } from "react-redux";
+import { Clock } from 'lucide-react';
+
+
 function Sidebar({ setView, currentView }) {
   const navigate = useNavigate();
   
@@ -84,85 +91,761 @@ function StatCard({ title, value, icon, color }) {
     </div>
   );
 }
-
 function MyRestaurants() {
-  // Mock data - would normally come from an API
-  const restaurants = [
-    { 
-      id: '1', 
-      name: 'Bella Italia', 
-      location: '123 Main St, Rome', 
-      cuisine: 'Italian',
-      capacity: 45,
-      rating: 4.5,
-      image: '/api/placeholder/300/200'
-    },
-    { 
-      id: '2', 
-      name: 'Sushi Master', 
-      location: '456 Ocean Dr, Tokyo', 
-      cuisine: 'Japanese',
-      capacity: 30,
-      rating: 4.8,
-      image: '/api/placeholder/300/200'
-    },
+  const navigate = useNavigate();
+  const { userInfo } = useSelector((state) => state.auth);
+  const { data, isLoading, error, refetch } = useGetRestaurantsQuery();
+  const [deleteRestaurant] = useDeleteRestaurantMutation();
+  const [updateRestaurant, { isLoading: isUpdating }] = useUpdateRestaurantMutation();
+  
+  // State for edit popup
+  const [showEditPopup, setShowEditPopup] = useState(false);
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    location: '',
+    cuisine: '',
+    description: '',
+    capacity: '',
+    openingHours: '',
+    contact: ''
+  });
+  
+  // Image management state
+  const [currentImages, setCurrentImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
+  const [imagesPreview, setImagesPreview] = useState([]);
+  
+  // Menu items state
+  const [menuItems, setMenuItems] = useState([]);
+  const [deletedMenuItems, setDeletedMenuItems] = useState([]);
+  
+  // Menu categories
+  const menuCategories = [
+    "Appetizers", "Main Courses", "Desserts", "Drinks", 
+    "Sides", "Specials", "Breakfast", "Lunch", "Dinner"
   ];
+  
+  // Get valid data
+  const allRestaurants = Array.isArray(data?.data) ? data.data : [];
 
-  const handleEdit = (id) => {
-    // Navigate to edit page or open modal
-    toast.info(`Editing restaurant ${id}`);
+  // Filter restaurants by the logged-in manager's ID
+  const myRestaurants = allRestaurants.filter(
+    (restaurant) => restaurant.owner === userInfo?._id
+  );
+
+  const handleEdit = (restaurant) => {
+    setSelectedRestaurant(restaurant);
+    setEditFormData({
+      name: restaurant.name || '',
+      location: restaurant.location?.address || '',
+      cuisine: restaurant.cuisine || '',
+      description: restaurant.description || '',
+      capacity: restaurant.capacity || '',
+      openingHours: restaurant.openingHours || '',
+      contact: restaurant.contact || ''
+    });
+    
+    // Set current images
+    setCurrentImages(restaurant.images || []);
+    setNewImages([]);
+    setImagesPreview([]);
+    
+    // Set menu items with unique IDs for UI
+    let menuItemsWithIds = [];
+    if (restaurant.menuItems && restaurant.menuItems.length > 0) {
+      menuItemsWithIds = restaurant.menuItems.map((item, index) => ({
+        ...item,
+        id: index + 1,
+        // Store existing images in images array with preview URLs
+        images: (item.images || []).map(img => ({
+          existingUrl: img,
+          preview: img,
+          isExisting: true
+        }))
+      }));
+    } else {
+      // Initialize with one empty menu item if none exist
+      menuItemsWithIds = [{ 
+        id: 1, 
+        name: '', 
+        category: '', 
+        description: '', 
+        price: '', 
+        images: [] 
+      }];
+    }
+    
+    setMenuItems(menuItemsWithIds);
+    setDeletedMenuItems([]);
+    
+    setShowEditPopup(true);
   };
 
-  const handleDelete = (id) => {
-    // Delete restaurant logic
-    toast.success(`Restaurant ${id} deleted`);
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this restaurant?')) {
+      try {
+        await deleteRestaurant(id).unwrap();
+        toast.success('Restaurant deleted successfully');
+        refetch();
+      } catch (err) {
+        toast.error(err?.data?.message || 'Failed to delete restaurant');
+      }
+    }
   };
+  
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  // Handle removing current image
+  const handleRemoveCurrentImage = (indexToRemove) => {
+    setCurrentImages(currentImages.filter((_, index) => index !== indexToRemove));
+  };
+  
+  // Handle new image uploads for restaurant
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    
+    // Limit to max 5 images total (current + new)
+    if (currentImages.length + newImages.length + files.length > 5) {
+      toast.error('Maximum 5 images allowed');
+      return;
+    }
+    
+    // Process each file
+    files.forEach(file => {
+      // Create preview for UI
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.readyState === 2) {
+          setImagesPreview(old => [...old, reader.result]);
+        }
+      };
+      reader.readAsDataURL(file);
+      
+      // Add to newImages state for form submission
+      setNewImages(prev => [...prev, file]);
+    });
+  };
+  
+  // Remove a new image (from preview)
+  const handleRemoveNewImage = (indexToRemove) => {
+    setNewImages(newImages.filter((_, index) => index !== indexToRemove));
+    setImagesPreview(imagesPreview.filter((_, index) => index !== indexToRemove));
+  };
+  
+  // Menu item handlers
+  const handleMenuChange = (id, field, value) => {
+    setMenuItems(prevItems => 
+      prevItems.map(item => 
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    );
+  };
+  
+  const addMenuItem = () => {
+    const newId = menuItems.length > 0 ? Math.max(...menuItems.map(item => item.id)) + 1 : 1;
+    setMenuItems([...menuItems, { 
+      id: newId, 
+      name: '', 
+      category: '', 
+      description: '', 
+      price: '', 
+      images: [] 
+    }]);
+  };
+  
+  const removeMenuItem = (id) => {
+    // Get the menu item being removed
+    const menuItemToRemove = menuItems.find(item => item.id === id);
+    
+    // If it has an _id (meaning it exists in the database), add to deletedMenuItems
+    if (menuItemToRemove && menuItemToRemove._id) {
+      setDeletedMenuItems([...deletedMenuItems, menuItemToRemove._id]);
+    }
+    
+    // Remove from current list
+    if (menuItems.length > 1) {
+      setMenuItems(menuItems.filter(item => item.id !== id));
+    } else {
+      toast.info("You need at least one menu item");
+    }
+  };
+  
+  // Handle menu item image upload
+  const handleMenuItemImageUpload = (e, menuItemId) => {
+    const files = Array.from(e.target.files);
+    
+    setMenuItems(prevItems => 
+      prevItems.map(item => {
+        if (item.id === menuItemId) {
+          // Count existing images (excluding those marked for removal)
+          const existingImageCount = item.images.filter(img => !img.isRemoved).length;
+          
+          if (existingImageCount + files.length > 3) {
+            toast.warning("Maximum 3 images allowed per menu item");
+            return item;
+          }
+          
+          // Process new images
+          const newImages = [];
+          
+          files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              // This code runs asynchronously after file is read
+              // We can't directly update state from here in a safe way
+            };
+            reader.readAsDataURL(file);
+            
+            // Create a preview immediately using URL.createObjectURL
+            newImages.push({
+              file,
+              preview: URL.createObjectURL(file),
+              name: file.name,
+              isNew: true
+            });
+          });
+          
+          return { ...item, images: [...item.images, ...newImages] };
+        }
+        return item;
+      })
+    );
+  };
+  
+  // Remove menu item image
+  const handleRemoveMenuItemImage = (menuItemId, imageIndex) => {
+    setMenuItems(prevItems => 
+      prevItems.map(item => {
+        if (item.id === menuItemId) {
+          const newImages = [...item.images];
+          
+          // If it's an existing image, mark it for removal rather than actually removing
+          if (newImages[imageIndex].isExisting) {
+            newImages[imageIndex] = { 
+              ...newImages[imageIndex], 
+              isRemoved: true 
+            };
+            return { ...item, images: newImages };
+          } else {
+            // For new uploads, remove completely
+            return { 
+              ...item, 
+              images: item.images.filter((_, idx) => idx !== imageIndex) 
+            };
+          }
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleUpdateSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      // Create form data
+      const formDataToSend = new FormData();
+      
+      // Add basic info
+      formDataToSend.append('name', editFormData.name);
+      
+      // Format location
+      const locationData = {
+        address: editFormData.location
+      };
+      formDataToSend.append('location', JSON.stringify(locationData));
+      
+      formDataToSend.append('cuisine', editFormData.cuisine);
+      formDataToSend.append('description', editFormData.description || '');
+      formDataToSend.append('capacity', editFormData.capacity);
+      formDataToSend.append('openingHours', editFormData.openingHours);
+      formDataToSend.append('contact', editFormData.contact);
+      formDataToSend.append('userId', userInfo._id);
+      formDataToSend.append('userRole', userInfo.role);
+      
+      // Add existing restaurant images we want to keep
+      if (currentImages.length > 0) {
+        formDataToSend.append('existingImages', JSON.stringify(currentImages));
+      }
+      
+      // Add new restaurant images if any
+      newImages.forEach(image => {
+        formDataToSend.append('images', image);
+      });
+      
+      // Process menu items
+      const processedMenuItems = menuItems.map(item => {
+        // Create a clean object without the UI-specific fields
+        const { id, images, ...itemData } = item;
+        
+        // Keep track of which existing images to retain
+        const existingImages = images
+          .filter(img => img.isExisting && !img.isRemoved)
+          .map(img => img.existingUrl);
+        
+        return {
+          ...itemData,
+          existingImages
+        };
+      });
+      
+      // Add processed menu items data
+      formDataToSend.append('menuItems', JSON.stringify(processedMenuItems));
+      
+      // If there are menu items to delete, add those IDs
+      if (deletedMenuItems.length > 0) {
+        formDataToSend.append('deletedMenuItems', JSON.stringify(deletedMenuItems));
+      }
+      
+      // Add menu item NEW images with naming convention
+      menuItems.forEach((item, itemIndex) => {
+        if (item.images && item.images.length > 0) {
+          // Only process new images (not existing ones)
+          const newImages = item.images.filter(img => img.isNew && !img.isRemoved);
+          
+          newImages.forEach((imgObj, imgIndex) => {
+            formDataToSend.append(
+              'menuItemImages', 
+              imgObj.file, 
+              `menuItem-${itemIndex}-image-${imgIndex}-${imgObj.name}`
+            );
+          });
+        }
+      });
+      
+      // Update restaurant
+      await updateRestaurant({ 
+        id: selectedRestaurant._id, 
+        formData: formDataToSend 
+      }).unwrap();
+      
+      toast.success('Restaurant updated successfully');
+      setShowEditPopup(false);
+      refetch();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to update restaurant');
+    }
+  };
+
+  if (isLoading) return <div className="text-center py-10">Loading...</div>;
+  if (error) return <div className="text-center py-10">Error loading restaurants...</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-2xl font-semibold text-gray-800">My Restaurants</h3>
-        <div className="text-sm text-gray-500">{restaurants.length} restaurants total</div>
+    <section className="max-w-screen-xl mx-auto px-4 py-10">
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-semibold">My Restaurants</h2>
+        <span className="text-gray-500 text-sm">{myRestaurants.length} total</span>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {restaurants.map(restaurant => (
-          <div key={restaurant.id} className="bg-white rounded-xl shadow-md overflow-hidden">
-            <img src={restaurant.image} alt={restaurant.name} className="w-full h-48 object-cover" />
-            <div className="p-6">
-              <h4 className="text-xl font-semibold text-gray-800 mb-2">{restaurant.name}</h4>
-              <div className="flex items-center mb-2">
-                <span className="text-yellow-500 mr-1">⭐</span>
-                <span className="text-sm text-gray-700">{restaurant.rating}</span>
+      
+      {myRestaurants.length === 0 ? (
+        <p className="text-center text-gray-500">You don't own any restaurants yet.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {myRestaurants.map((restaurant) => (
+            <div
+              key={restaurant._id}
+              className="bg-white rounded-lg shadow-md overflow-hidden"
+            >
+              <div className="relative w-full h-44">
+                <img
+                  src={restaurant.images?.[0] || "https://via.placeholder.com/400x250"}
+                  alt={restaurant.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <p className="text-gray-600 mb-4">
-                <span className="block">📍 {restaurant.location}</span>
-                <span className="block">🍽️ {restaurant.cuisine}</span>
-                <span className="block">👥 Capacity: {restaurant.capacity}</span>
-              </p>
-              <div className="flex justify-between pt-4 border-t border-gray-200">
-                <Button
-                  size="sm"
-                  onClick={() => handleEdit(restaurant.id)}
-                  className="bg-green-500 hover:bg-green-600 text-white"
+              
+              <div className="p-4">
+                <h3 className="text-lg font-medium mb-1">{restaurant.name}</h3>
+                <div className="flex items-center text-sm text-gray-600 mb-2">
+                  <Clock size={16} className="mr-1" />
+                  <span>Hours: {restaurant.openingHours || "Not specified"}</span>
+                </div>
+                
+                <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+                  {restaurant.description || "No description available"}
+                </p>
+                
+                <div className="flex justify-between gap-2">
+                  <Button
+                    onClick={() => handleEdit(restaurant)}
+                    className="bg-green-500 hover:bg-green-600 text-white flex-1"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    onClick={() => handleDelete(restaurant._id)}
+                    className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 flex-1"
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Edit Restaurant Popup Modal */}
+      {showEditPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Edit Restaurant</h2>
+                <button 
+                  onClick={() => setShowEditPopup(false)}
+                  className="p-2 rounded-full hover:bg-gray-100"
                 >
-                  Edit
-                </Button>
-                <button
-                  onClick={() => handleDelete(restaurant.id)}
-                  className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md"
-                >
-                  Delete
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
             </div>
+            
+            <form onSubmit={handleUpdateSubmit} className="p-6">
+              {/* Restaurant Basic Info Section */}
+              <div className="mb-6 border-b pb-6">
+                <h3 className="text-xl font-semibold mb-4">Restaurant Details</h3>
+                
+                {/* Restaurant Images Section */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Restaurant Images (Max 5)
+                  </label>
+                  
+                  <div className="flex flex-wrap gap-4">
+                    {/* Current Images */}
+                    {currentImages.map((img, index) => (
+                      <div key={`current-${index}`} className="relative w-24 h-24 border rounded overflow-hidden">
+                        <img 
+                          src={img} 
+                          alt={`Restaurant ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCurrentImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))}
+                    
+                    {/* New Image Previews */}
+                    {imagesPreview.map((img, index) => (
+                      <div key={`new-${index}`} className="relative w-24 h-24 border rounded overflow-hidden">
+                        <img 
+                          src={img} 
+                          alt={`New upload ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveNewImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))}
+                    
+                    {/* Add Image Button */}
+                    {currentImages.length + newImages.length < 5 && (
+                      <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded flex items-center justify-center">
+                        <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span className="text-xs text-gray-500 mt-1">Add Image</span>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageUpload}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Restaurant Name*
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={editFormData.name}
+                      onChange={handleFormChange}
+                      required
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Location/Address*
+                    </label>
+                    <input
+                      type="text"
+                      name="location"
+                      value={editFormData.location}
+                      onChange={handleFormChange}
+                      required
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cuisine Type*
+                    </label>
+                    <input
+                      type="text"
+                      name="cuisine"
+                      value={editFormData.cuisine}
+                      onChange={handleFormChange}
+                      required
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Capacity*
+                    </label>
+                    <input
+                      type="number"
+                      name="capacity"
+                      value={editFormData.capacity}
+                      onChange={handleFormChange}
+                      required
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Opening Hours
+                    </label>
+                    <input
+                      type="text"
+                      name="openingHours"
+                      value={editFormData.openingHours}
+                      onChange={handleFormChange}
+                      placeholder="e.g. Mon-Fri: 9am-10pm, Sat-Sun: 10am-11pm"
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Contact Information
+                    </label>
+                    <input
+                      type="text"
+                      name="contact"
+                      value={editFormData.contact}
+                      onChange={handleFormChange}
+                      placeholder="Phone, Email, Website"
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    value={editFormData.description}
+                    onChange={handleFormChange}
+                    rows={4}
+                    className="w-full p-2 border border-gray-300 rounded"
+                  />
+                </div>
+              </div>
+              
+              {/* Menu Items Section */}
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold">Menu Items</h3>
+                  <button
+                    type="button"
+                    onClick={addMenuItem}
+                    className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Item
+                  </button>
+                </div>
+                
+                {menuItems.map((item, index) => (
+                  <div 
+                    key={item.id} 
+                    className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50"
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium">Menu Item #{index + 1}</h4>
+                      <button
+                        type="button"
+                        onClick={() => removeMenuItem(item.id)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Item Name*
+                        </label>
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => handleMenuChange(item.id, 'name', e.target.value)}
+                          required
+                          className="w-full p-2 border border-gray-300 rounded"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Category*
+                        </label>
+                        <select
+                          value={item.category}
+                          onChange={(e) => handleMenuChange(item.id, 'category', e.target.value)}
+                          required
+                          className="w-full p-2 border border-gray-300 rounded"
+                        >
+                          <option value="">Select Category</option>
+                          {menuCategories.map((cat) => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          value={item.description}
+                          onChange={(e) => handleMenuChange(item.id, 'description', e.target.value)}
+                          rows={3}
+                          className="w-full p-2 border border-gray-300 rounded"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Price ($)*
+                        </label>
+                        <input
+                          type="number"
+                          value={item.price}
+                          onChange={(e) => handleMenuChange(item.id, 'price', e.target.value)}
+                          required
+                          step="0.01"
+                          min="0"
+                          className="w-full p-2 border border-gray-300 rounded"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Menu Item Images */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Item Images (Max 3)
+                      </label>
+                      
+                      <div className="flex flex-wrap gap-3">
+                        {/* Show existing and new images that aren't marked for removal */}
+                        {item.images.filter(img => !img.isRemoved).map((img, imgIndex) => (
+                          <div key={`item-${item.id}-img-${imgIndex}`} className="relative w-20 h-20 border rounded overflow-hidden">
+                            <img 
+                              src={img.preview} 
+                              alt={`Menu item ${imgIndex + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMenuItemImage(item.id, item.images.findIndex(i => i.preview === img.preview))}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                            >
+                              x
+                            </button>
+                          </div>
+                        ))}
+                        
+                        {/* Add Image Button - only if less than 3 images */}
+                        {item.images.filter(img => !img.isRemoved).length < 3 && (
+                          <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded flex items-center justify-center">
+                            <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => handleMenuItemImageUpload(e, item.id)}
+                              />
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-6 flex justify-end space-x-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditPopup(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className={`px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 ${
+                    isUpdating ? 'opacity-70 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isUpdating ? 'Updating...' : 'Update Restaurant'}
+                </button>
+              </div>
+            </form>
           </div>
-        ))}
-      </div>
-    </div>
+        </div>
+      )}
+    </section>
   );
 }
-
 
 
 function CreateRestaurant() {

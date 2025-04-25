@@ -183,9 +183,28 @@ getRestaurantById: builder.query({
     method: 'GET',
       // Include cookies if necessary
   }),
-  providesTags: ['Restaurants'],
+  providesTags: ['Restaurant'],
 }),
 
+
+deleteRestaurant: builder.mutation({
+  query: (id) => ({
+    url: `api/manager/restaurant/${id}`,
+    method: 'DELETE',
+    credentials: "include",
+  }),
+  invalidatesTags: ['Restaurants'],
+}), 
+
+updateRestaurant: builder.mutation({
+  query: ({ id, formData }) => ({
+    url: `api/manager/restaurant/${id}`,
+    method: 'PUT',
+    body: formData,
+    credentials: "include",
+  }),
+  invalidatesTags: ['Restaurants'],
+}),
 
 
 
@@ -213,4 +232,6 @@ export const {
   useCreateRestaurantMutation,
   useGetRestaurantsQuery,
   useGetRestaurantByIdQuery,
+  useDeleteRestaurantMutation,
+  useUpdateRestaurantMutation,
 } = apiSlice;

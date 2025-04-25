@@ -5,8 +5,8 @@ import { ChevronLeft, ChevronRight, Star, MapPin, Clock, Phone } from 'lucide-re
 
 const RestaurantCard = () => {
   const navigate = useNavigate();
-  const { data, isLoading, error } = useGetRestaurantsQuery();
-
+  const { data, isLoading, error, refetch } = useGetRestaurantsQuery();
+  
   // Ensure the data is an array of restaurants
   const restaurants = Array.isArray(data?.data) ? data.data : [];
 
@@ -34,14 +34,14 @@ const RestaurantCard = () => {
       {restaurants.length === 0 ? (
         <p className="text-center text-gray-500 text-lg">No restaurants found</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+
           {restaurants.map((restaurant) => (
             <div
               key={restaurant._id}
-              className="bg-white rounded-lg shadow-md overflow-hidden"
-            >
+              className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-[420px] w-full transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"      >
               {/* Restaurant Image */}
-              <div className="relative w-full h-44">
+              <div className="relative w-full h-60">
                 <img 
                   src={restaurant.images?.[0] || "https://via.placeholder.com/400x250"} 
                   alt={restaurant.name} 

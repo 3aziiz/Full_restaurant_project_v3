@@ -31,7 +31,7 @@ const RestaurantDetail = () => {
   const { id } = useParams();
 
   // Get restaurant data from RTK Query
-  const { data, isLoading, error } = useGetRestaurantByIdQuery(id);
+  const { data, isLoading, error ,refetch } = useGetRestaurantByIdQuery(id);
 
   // Check loading state
   if (isLoading) {
@@ -60,7 +60,7 @@ const RestaurantDetail = () => {
   };
 
   // Now pass the properly prepared data to the template
-  return <RestaurantTemplate restaurant={preparedRestaurant} />;
+  return <RestaurantTemplate restaurant={preparedRestaurant} />;;
 };
 
 export default RestaurantDetail;

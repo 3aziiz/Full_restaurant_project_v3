@@ -214,3 +214,25 @@ exports.getAllRestaurants = async (req, res) => {
     });
   }
 };
+
+
+// DELETE /api/restaurants/:id
+exports.deleteRestaurant = async (req, res) => {
+  try {
+    const restaurant = await Restaurant.findById(req.params.id);
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    // Check if user owns the restaurant
+    if (restaurant.owner.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    await restaurant.deleteOne();
+    res.status(200).json({ message: 'Restaurant deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
