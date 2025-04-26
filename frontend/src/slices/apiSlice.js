@@ -196,15 +196,26 @@ deleteRestaurant: builder.mutation({
   invalidatesTags: ['Restaurants'],
 }), 
 
-updateRestaurant: builder.mutation({
+
+
+
+ // Add the update restaurant mutation
+ updateRestaurant: builder.mutation({
   query: ({ id, formData }) => ({
     url: `api/manager/restaurant/${id}`,
     method: 'PUT',
     body: formData,
+    // Important: This disables the automatic JSON serialization since we're sending FormData
+    formData: true,
     credentials: "include",
   }),
-  invalidatesTags: ['Restaurants'],
+  invalidatesTags: ['Restaurant'],
 }),
+
+
+
+
+
 
 
 
@@ -234,4 +245,5 @@ export const {
   useGetRestaurantByIdQuery,
   useDeleteRestaurantMutation,
   useUpdateRestaurantMutation,
+
 } = apiSlice;

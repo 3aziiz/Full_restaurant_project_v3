@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createRestaurant,getAllRestaurants,getRestaurantById,deleteRestaurant } = require('../controllers/managerController');
+const { createRestaurant,getAllRestaurants,getRestaurantById,deleteRestaurant ,updateRestaurant} = require('../controllers/managerController');
 const authMiddleware = require('../middleware/authMiddleware');
 const requireManager = require('../middleware/requireManager');
 
@@ -11,6 +11,6 @@ router.get('/restaurant/:id', getRestaurantById);
 // Get a restaurant by its ID for users
 router.delete('/restaurant/:id', authMiddleware,requireManager, deleteRestaurant);
 
-
+router.put('/restaurant/:id', authMiddleware, requireManager, updateRestaurant);
 
 module.exports = router;
