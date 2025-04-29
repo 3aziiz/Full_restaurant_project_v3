@@ -196,9 +196,6 @@ deleteRestaurant: builder.mutation({
   invalidatesTags: ['Restaurants'],
 }), 
 
-
-
-
  // Add the update restaurant mutation
  updateRestaurant: builder.mutation({
   query: ({ id, formData }) => ({
@@ -214,6 +211,58 @@ deleteRestaurant: builder.mutation({
 
 
 
+// Add Review mutation
+addReview: builder.mutation({
+  query: (data) => ({
+    url: `api/users/restaurants/${data.restaurantId}/reviews`,
+    method: 'POST',
+    body: data.reviewData,
+    credentials: 'include',
+  }),
+  // ...
+}),
+
+
+// Get Reviews for a restaurant
+getReviews: builder.query({
+  query: (restaurantId) => ({
+    url: `api/users/${restaurantId}/reviews`,  // Changed from api/restaurants/
+    method: 'GET',
+    credentials: 'include',
+  }),
+  providesTags: (result, error, arg) => [
+    { type: 'Reviews', id: arg },
+    'Reviews'
+  ]
+}),
+
+
+// Delete Review mutation
+deleteReview: builder.mutation({
+  query: ({ restaurantId, reviewId }) => ({
+    url: `api/users/${restaurantId}/reviews/${reviewId}`,
+    method: 'DELETE',
+    credentials: 'include',
+  }),
+  invalidatesTags: (result, error, arg) => [
+    { type: 'Reviews', id: arg.restaurantId },
+    'Reviews'
+  ]
+}),
+
+// Update Review mutation
+updateReview: builder.mutation({
+  query: ({ restaurantId, reviewId, updatedData }) => ({
+    url: `api/users/${restaurantId}/reviews/${reviewId}`,
+    method: 'PUT',
+    body: updatedData,
+    credentials: 'include',
+  }),
+  invalidatesTags: (result, error, arg) => [
+    { type: 'Reviews', id: arg.restaurantId },
+    'Reviews'
+  ]
+}),
 
 
 
@@ -245,5 +294,8 @@ export const {
   useGetRestaurantByIdQuery,
   useDeleteRestaurantMutation,
   useUpdateRestaurantMutation,
-
+  useAddReviewMutation,
+  useGetReviewsQuery,
+  useDeleteReviewMutation,
+  useUpdateReviewMutation,
 } = apiSlice;

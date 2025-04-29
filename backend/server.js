@@ -57,6 +57,20 @@ app.use('/api/users',userRoutes);
 // manager routes
 app.use('/api/manager',managerRoutes);
 
+// // After all routes are defined
+// console.log('All registered routes:');
+// app._router.stack.forEach(r => {
+//   if (r.route && r.route.path) {
+//     console.log(`${Object.keys(r.route.methods).join(',')} ${r.route.path}`);
+//   } else if (r.name === 'router') {
+//     r.handle.stack.forEach(layer => {
+//       if (layer.route) {
+//         const methods = Object.keys(layer.route.methods).join(',');
+//         console.log(`${methods} ${r.regexp} ${layer.route.path}`);
+//       }
+//     });
+//   }
+// });
 
 
 // Connect to MongoDB and start the server
