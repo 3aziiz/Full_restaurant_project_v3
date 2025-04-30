@@ -253,9 +253,9 @@ deleteReview: builder.mutation({
 // Update Review mutation
 updateReview: builder.mutation({
   query: ({ restaurantId, reviewId, updatedData }) => ({
-    url: `api/users/${restaurantId}/reviews/${reviewId}`,
+    url: `api/users/${restaurantId}/reviews/${reviewId}`, // Fix URL here
     method: 'PUT',
-    body: updatedData,
+    body: updatedData, // Ensure updatedData includes rating, comment, and userId
     credentials: 'include',
   }),
   invalidatesTags: (result, error, arg) => [
@@ -263,6 +263,20 @@ updateReview: builder.mutation({
     'Reviews'
   ]
 }),
+
+
+ // Create a new booking
+ createBooking: builder.mutation({
+  query: (bookingData) => ({
+    url: `api/users/restaurants/${bookingData.restaurantId}/bookings`,
+    method: 'POST',
+    body: bookingData,
+    credentials: 'include',
+  }),
+  invalidatesTags: ['Booking'],
+}),
+
+
 
 
 
@@ -298,4 +312,5 @@ export const {
   useGetReviewsQuery,
   useDeleteReviewMutation,
   useUpdateReviewMutation,
+  useCreateBookingMutation,
 } = apiSlice;
