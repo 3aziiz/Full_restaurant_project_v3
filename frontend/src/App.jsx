@@ -22,6 +22,7 @@ import RestaurantMenu from './components/Restaurant/RestaurantMenu/RestaurantMen
 import OrderDetails from './components/ViewOrder/OrderDetails';
 import Profile from './components/Profile/Profile';
 import TableBookingDetails from './components/Restaurant/BookingTable/TableBookingDetails';
+import UserBookings from './components/Restaurants/UserBookings';
 import Payment from './components/Payment/Payment';
 import ResetPassword from './components/ResetPassword/ResetPassword';
 import { useSelector } from 'react-redux';
@@ -91,7 +92,7 @@ const App = () => {
 
             <Route path="/reset-password" element={<ForgetPassword />} />
             <Route path="/vieworders" element={<OrderDetails />} />
-            <Route path="/table/details" element={<TableBookingDetails />} />
+            <Route path="/table/details" element={<UserBookings />} />
            
 
             
@@ -103,7 +104,7 @@ const App = () => {
             {/* Private routes */}
             <Route path="" element={<PrivateRoute />}>
               <Route path="/cart" element={<Cart />} />
-              <Route path="/:id/book-table" element={<TableBooking />} />
+              <Route path="/:id/book-table" element={<UserBookings />} />
               <Route path="/order" element={<PlaceOrder />} />
               <Route path="/order/:id" element={<Payment />} />
               {/* <Route path="/restaurant/:id/menu" element={<RestaurantMenu />} /> */}

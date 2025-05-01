@@ -268,13 +268,117 @@ updateReview: builder.mutation({
  // Create a new booking
  createBooking: builder.mutation({
   query: (bookingData) => ({
-    url: `api/users/restaurants/${bookingData.restaurantId}/bookings`,
+    url: 'api/bookings',
     method: 'POST',
     body: bookingData,
     credentials: 'include',
   }),
   invalidatesTags: ['Booking'],
 }),
+
+ // Get bookings with optional filter
+ getBookings: builder.query({
+  query: (filter = 'all') => ({
+    url: 'api/bookings/myBookings',
+    credentials: 'include',
+  }),
+  providesTags: (result) => 
+    result
+      ? [
+          ...result.map(({ id }) => ({ type: 'Booking', id })),
+          { type: 'Booking', id: 'LIST' }
+        ]
+      : [{ type: 'Booking', id: 'LIST' }],
+}),
+
+
+// Update booking status
+updateBookingStatus: builder.mutation({
+  query: ({ id, status }) => ({
+    url: `api/bookings/${id}`,
+    method: 'PATCH',
+    body: { status },
+    credentials: 'include',
+  }),
+  invalidatesTags: (result, error, arg) => [
+    { type: 'Booking', id: arg.id },
+    { type: 'Booking', id: 'LIST' }
+  ],
+}),
+
+
+
+
+
+
+
+
+
+
+// Get all bookings for the current user
+getUserBookings: builder.query({
+  query: () => ({
+    url: `api/userBookings/${id}`,
+    method: 'GET',
+    credentials: 'include',
+  }),
+  providesTags: (result) => 
+    result 
+      ? [
+          ...result.map(({ _id }) => ({ type: 'Booking', id: _id })),
+          { type: 'Booking', id: 'LIST' }
+        ]
+      : [{ type: 'Booking', id: 'LIST' }],
+}),
+
+// Cancel a booking
+cancelBooking: builder.mutation({
+  query: (id) => ({
+    url: `api/bookings/${id}/cancel`,
+    method: 'PATCH',
+    credentials: 'include',
+  }),
+  invalidatesTags: (result, error, id) => [
+    { type: 'Booking', id },
+    { type: 'Booking', id: 'LIST' }
+  ],
+}),
+
+// Update booking details (for pending bookings)
+updateBooking: builder.mutation({
+  query: ({ id, bookingData }) => ({
+    url: `api/bookings/${id}`,
+    method: 'PUT',
+    body: bookingData,
+    credentials: 'include',
+  }),
+  invalidatesTags: (result, error, arg) => [
+    { type: 'Booking', id: arg.id },
+    { type: 'Booking', id: 'LIST' }
+  ],
+}),
+
+// Process payment for a booking
+processPayment: builder.mutation({
+  query: ({ bookingId, paymentDetails }) => ({
+    url: `api/bookings/${bookingId}/payment`,
+    method: 'POST',
+    body: paymentDetails,
+    credentials: 'include',
+  }),
+  invalidatesTags: (result, error, arg) => [
+    { type: 'Booking', id: arg.bookingId },
+    { type: 'Booking', id: 'LIST' }
+  ],
+}),
+
+
+
+
+
+
+
+
 
 
 
@@ -313,4 +417,10 @@ export const {
   useDeleteReviewMutation,
   useUpdateReviewMutation,
   useCreateBookingMutation,
+  useGetBookingsQuery,
+  useUpdateBookingStatusMutation,
+  useGetUserBookingsQuery,
+  useCancelBookingMutation,
+  useUpdateBookingMutation,
+  useProcessPaymentMutation,
 } = apiSlice;

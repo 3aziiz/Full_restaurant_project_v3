@@ -5,11 +5,13 @@ import { Button } from "@material-tailwind/react";
 import { useCreateRestaurantMutation ,
   useGetRestaurantsQuery ,
   useDeleteRestaurantMutation ,
-  useUpdateRestaurantMutation
+  useUpdateRestaurantMutation,
+  useGetBookingsQuery,
+  useUpdateBookingStatusMutation,
 } from '../../slices/apiSlice';
 import { useSelector } from "react-redux";
 import { Clock } from 'lucide-react';
-
+import React from 'react';
 
 function Sidebar({ setView, currentView }) {
   const navigate = useNavigate();
@@ -73,20 +75,22 @@ function Sidebar({ setView, currentView }) {
   );
 }
 
-function StatCard({ title, value, icon, color }) {
-  const bgColorClass = `bg-${color}-100`;
-  const textColorClass = `text-${color}-800`;
-  const iconBgClass = `bg-${color}-200`;
-  const iconTextClass = `text-${color}-600`;
+function StatCard({ title, value, icon, color = 'blue' }) {
+  const colorClasses = {
+    blue: 'bg-blue-100 text-blue-800',
+    green: 'bg-green-100 text-green-800',
+    yellow: 'bg-yellow-100 text-yellow-800',
+    red: 'bg-red-100 text-red-800'
+  };
   
   return (
-    <div className={`p-6 rounded-xl shadow-md ${bgColorClass} flex items-center`}>
-      <div className={`w-12 h-12 rounded-lg ${iconBgClass} flex items-center justify-center mr-4`}>
-        <span className={`text-2xl ${iconTextClass}`}>{icon}</span>
+    <div className="bg-white rounded-xl shadow-md p-6 flex items-center">
+      <div className={`${colorClasses[color]} p-3 rounded-full text-xl`}>
+        {icon}
       </div>
-      <div>
-        <h3 className="text-gray-500 text-sm font-medium">{title}</h3>
-        <p className={`text-2xl font-bold ${textColorClass}`}>{value}</p>
+      <div className="ml-4">
+        <p className="text-sm font-medium text-gray-500">{title}</p>
+        <h3 className="text-xl font-semibold text-gray-900">{value}</h3>
       </div>
     </div>
   );
@@ -1478,57 +1482,15 @@ function CreateRestaurant() {
 }
 
 
-
 function Bookings() {
   const [filter, setFilter] = useState('all');
+  const [expandedBooking, setExpandedBooking] = useState(null);
   
-  // Mock data - would normally come from an API
-  const bookings = [
-    {
-      id: '1',
-      restaurant: 'Bella Italia',
-      customerName: 'John Smith',
-      date: '2025-04-25',
-      time: '19:00',
-      guests: 4,
-      status: 'confirmed',
-      contact: 'john@example.com'
-    },
-    {
-      id: '2',
-      restaurant: 'Bella Italia',
-      customerName: 'Emma Johnson',
-      date: '2025-04-26',
-      time: '20:30',
-      guests: 2,
-      status: 'pending',
-      contact: 'emma@example.com'
-    },
-    {
-      id: '3',
-      restaurant: 'Sushi Master',
-      customerName: 'Robert Lee',
-      date: '2025-04-24',
-      time: '18:30',
-      guests: 6,
-      status: 'confirmed',
-      contact: 'robert@example.com'
-    },
-    {
-      id: '4',
-      restaurant: 'Sushi Master',
-      customerName: 'Sarah Wilson',
-      date: '2025-04-25',
-      time: '13:00',
-      guests: 3,
-      status: 'cancelled',
-      contact: 'sarah@example.com'
-    }
-  ];
-
-  const filteredBookings = filter === 'all' 
-    ? bookings 
-    : bookings.filter(booking => booking.status === filter);
+  // Using RTK Query to fetch bookings based on filter
+  const { data: bookings = [], isLoading, isError } = useGetBookingsQuery(filter);
+  
+  // Using RTK Query mutation to update booking status
+  const [updateBookingStatus] = useUpdateBookingStatusMutation();
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -1539,13 +1501,44 @@ function Bookings() {
     }
   };
 
-  const handleConfirm = (id) => {
-    toast.success(`Booking #${id} confirmed`);
+  const handleConfirm = async (id) => {
+    try {
+      await updateBookingStatus({ id, status: 'confirmed' }).unwrap();
+      toast.success(`Booking #${id} confirmed`);
+    } catch (error) {
+      toast.error(`Failed to confirm booking: ${error.message}`);
+    }
   };
 
-  const handleCancel = (id) => {
-    toast.info(`Booking #${id} cancelled`);
+  const handleCancel = async (id) => {
+    try {
+      await updateBookingStatus({ id, status: 'cancelled' }).unwrap();
+      toast.info(`Booking #${id} cancelled`);
+    } catch (error) {
+      toast.error(`Failed to cancel booking: ${error.message}`);
+    }
   };
+
+  const toggleBookingDetails = (id) => {
+    if (expandedBooking === id) {
+      setExpandedBooking(null);
+    } else {
+      setExpandedBooking(id);
+    }
+  };
+
+  // Calculate counts
+  const today = new Date().toISOString().split('T')[0];
+  const todaysBookingsCount = bookings.filter(booking => booking.date === today).length;
+  const pendingCount = bookings.filter(booking => booking.status === 'pending').length;
+
+  // Calculate total pre-orders
+  const totalPreOrders = bookings.reduce((total, booking) => {
+    return total + (booking.preOrders?.length || 0);
+  }, 0);
+console.log(bookings);
+  if (isLoading) return <div className="text-center py-8">Loading bookings...</div>;
+  if (isError) return <div className="text-red-600 text-center py-8">Error loading bookings. Please try again.</div>;
 
   return (
     <div className="space-y-6">
@@ -1569,6 +1562,11 @@ function Bookings() {
             className={`px-3 py-1 text-sm rounded-md ${filter === 'pending' ? 'bg-yellow-700 text-white' : 'bg-yellow-100 text-yellow-700'}`}
           >
             Pending
+            {pendingCount > 0 && (
+              <span className="ml-1 bg-yellow-200 text-yellow-800 text-xs px-1.5 py-0.5 rounded-full">
+                {pendingCount}
+              </span>
+            )}
           </button>
           <button 
             onClick={() => setFilter('cancelled')}
@@ -1579,9 +1577,11 @@ function Bookings() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard title="Total Bookings" value={bookings.length} icon="📊" color="green" />
-        <StatCard title="Today's Bookings" value="2" icon="📅" color="blue" />
+        <StatCard title="Today's Bookings" value={todaysBookingsCount} icon="📅" color="blue" />
+        <StatCard title="Pending Approval" value={pendingCount} icon="⏳" color="yellow" />
+        <StatCard title="Pre-ordered Items" value={totalPreOrders} icon="🍽️" color="purple" />
       </div>
 
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -1592,51 +1592,183 @@ function Bookings() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Restaurant</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredBookings.map(booking => (
-                <tr key={booking.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">{booking.customerName}</div>
-                    <div className="text-sm text-gray-500">{booking.contact}</div>
-                    <div className="text-sm text-gray-500">Guests: {booking.guests}</div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {booking.restaurant}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    <div>{new Date(booking.date).toLocaleDateString()}</div>
-                    <div>{booking.time}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getStatusColor(booking.status)}`}>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium">
-                    {booking.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleConfirm(booking.id)}
-                        className="bg-green-500 hover:bg-green-600 text-white mr-2"
+              {bookings.map(booking => (
+                <React.Fragment key={booking.id}>
+                  <tr className={`hover:bg-gray-50 ${expandedBooking === booking.id ? 'bg-blue-50' : ''}`}>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        {booking.userAvatar ? (
+                          <img 
+                            src={booking.userAvatar} 
+                            alt={booking.customerName} 
+                            className="h-10 w-10 rounded-full mr-3 object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                            <span className="text-gray-500 font-medium text-sm">
+                              {booking.customerName?.charAt(0) || 'U'}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{booking.customerName}</div>
+                          <div className="text-sm text-gray-500">{booking.contact}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="flex items-center">
+                        {booking.restaurant?.image ? (
+                          <img 
+                            src={booking.restaurant.image} 
+                            alt={booking.restaurant.name} 
+                            className="h-10 w-10 rounded mr-3 object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded bg-gray-200 flex items-center justify-center mr-3">
+                            <span className="text-gray-500 font-medium text-sm">
+                              {booking.restaurant?.name?.charAt(0) || 'R'}
+                            </span>
+                          </div>
+                        )}
+                        <div className="font-medium">{booking.restaurant?.name}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="font-medium">{new Date(booking.date).toLocaleDateString()}</div>
+                      <div>{booking.time}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="font-medium">Guests: {booking.guests}</div>
+                      
+                      {booking.preOrders && booking.preOrders.length > 0 && (
+                        <div className="text-xs text-green-600 font-medium">
+                          {booking.preOrders.length} pre-ordered items
+                        </div>
+                      )}
+                      <button 
+                        onClick={() => toggleBookingDetails(booking.id)}
+                        className="text-blue-600 hover:text-blue-800 text-xs mt-1 flex items-center"
                       >
-                        Confirm
-                      </Button>
-                    )}
-                    {booking.status !== 'cancelled' && (
-                      <button
-                        onClick={() => handleCancel(booking.id)}
-                        className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md"
-                      >
-                        Cancel
+                        {expandedBooking === booking.id ? 'Hide details' : 'View details'}
+                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transform ${expandedBooking === booking.id ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
                       </button>
-                    )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getStatusColor(booking.status)}`}>
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm font-medium">
+                      {booking.status === 'pending' && (
+                        <button
+                          onClick={() => handleConfirm(booking.id)}
+                          className="bg-green-500 hover:bg-green-600 text-white mr-2 px-3 py-1 rounded-md"
+                        >
+                          Confirm
+                        </button>
+                      )}
+                      {booking.status !== 'cancelled' && (
+                        <button
+                          onClick={() => handleCancel(booking.id)}
+                          className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {expandedBooking === booking.id && (
+                    <tr className="bg-blue-50">
+                      <td colSpan="6" className="px-6 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <h4 className="font-medium text-gray-900 mb-2">Booking Information</h4>
+                            <div className="space-y-1 text-sm">
+                              <p><span className="font-medium text-gray-700">Booking ID:</span> {booking.id}</p>
+                              <p><span className="font-medium text-gray-700">Date:</span> {new Date(booking.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                              <p><span className="font-medium text-gray-700">Time:</span> {booking.time}</p>
+                              <p><span className="font-medium text-gray-700">Party Size:</span> {booking.guests} guests</p>
+                              
+                              {booking.tableType && (
+                                <p><span className="font-medium text-gray-700">Table Type:</span> {booking.tableType}</p>
+                              )}
+                              {booking.occasion && (
+                                <p><span className="font-medium text-gray-700">Occasion:</span> {booking.occasion}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900 mb-2">Customer Information</h4>
+                            <div className="space-y-1 text-sm">
+                              <p><span className="font-medium text-gray-700">Name:</span> {booking.customerName}</p>
+                              <p><span className="font-medium text-gray-700">Email:</span> {booking.contact}</p>
+                              
+                               <p><span className="font-medium text-gray-700">Phone number :</span> {booking.phoneNumber} </p>
+                              
+                              {booking.notes && (
+                                <div className="mt-2">
+                                  <p className="font-medium text-gray-700">Special Requests:</p>
+                                  <p className="text-gray-600 mt-1 p-2 bg-gray-100 rounded">{booking.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {booking.preOrders && booking.preOrders.length > 0 && (
+                            <div>
+                              <h4 className="font-medium text-gray-900 mb-2">Pre-ordered Items</h4>
+                              <div className="bg-white p-3 rounded-lg shadow-sm">
+                                <table className="min-w-full">
+                                  <thead>
+                                    <tr className="border-b border-gray-200">
+                                      <th className="text-left text-xs font-medium text-gray-500 pb-2">Item</th>
+                                      <th className="text-center text-xs font-medium text-gray-500 pb-2">Qty</th>
+                                      <th className="text-right text-xs font-medium text-gray-500 pb-2">Price</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {booking.preOrders.map((item, index) => (
+                                      <tr key={index} className="text-sm">
+                                        <td className="py-2 font-medium text-gray-800">{item.name}</td>
+                                        <td className="py-2 text-center text-gray-600">{item.quantity}</td>
+                                        <td className="py-2 text-right text-gray-600">
+                                          ${(item.price * item.quantity).toFixed(2)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                    <tr className="border-t border-gray-200">
+                                      <td className="pt-2 font-medium text-gray-800">Total</td>
+                                      <td className="pt-2"></td>
+                                      <td className="pt-2 text-right font-medium text-gray-800">
+                                        ${booking.preOrders.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+              {bookings.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                    No bookings found with the selected filter.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -1644,7 +1776,6 @@ function Bookings() {
     </div>
   );
 }
-
 function Settings() {
   return (
     <div className="space-y-6">

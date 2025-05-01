@@ -13,6 +13,8 @@ const managerRequestRoutes = require('./routes/managerRequestRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const userRoutes=require('./routes/userRoutes');
 const managerRoutes = require('./routes/managerRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
+const userBookingRoutes = require ('./routes/userBookingRoutes');
 dotenv.config();
 
 const app = express();
@@ -56,6 +58,14 @@ app.use('/api/users',userRoutes);
 
 // manager routes
 app.use('/api/manager',managerRoutes);
+
+//bookingRoutes
+app.use('/api/bookings', bookingRoutes);
+
+
+//userBookingRoutes
+app.use('/api/userBooking',userBookingRoutes);
+
 
 // // After all routes are defined
 // console.log('All registered routes:');
