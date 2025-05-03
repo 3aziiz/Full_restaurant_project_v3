@@ -315,15 +315,17 @@ updateBookingStatus: builder.mutation({
 
 
 
+
+
 // Get all bookings for the current user
 getUserBookings: builder.query({
-  query: () => ({
-    url: `api/userBookings/${id}`,
+  query: (userId) => ({
+    url: `api/userBooking/${userId}`,
     method: 'GET',
     credentials: 'include',
   }),
   providesTags: (result) => 
-    result 
+    result
       ? [
           ...result.map(({ _id }) => ({ type: 'Booking', id: _id })),
           { type: 'Booking', id: 'LIST' }
@@ -359,7 +361,7 @@ updateBooking: builder.mutation({
 }),
 
 // Process payment for a booking
-processPayment: builder.mutation({
+PayBooking: builder.mutation({
   query: ({ bookingId, paymentDetails }) => ({
     url: `api/bookings/${bookingId}/payment`,
     method: 'POST',
@@ -374,7 +376,15 @@ processPayment: builder.mutation({
 
 
 
-
+// Add the new delete booking mutation
+deleteBooking: builder.mutation({
+  query: (id) => ({
+    url: `/bookings/${id}`,
+    method: 'DELETE',
+  }),
+  // Invalidate the user bookings cache to trigger a refetch
+  invalidatesTags: ['UserBookings'],
+}),
 
 
 
@@ -422,5 +432,6 @@ export const {
   useGetUserBookingsQuery,
   useCancelBookingMutation,
   useUpdateBookingMutation,
-  useProcessPaymentMutation,
+  usePayBookingMutation,
+  useDeleteBookingMutation,
 } = apiSlice;

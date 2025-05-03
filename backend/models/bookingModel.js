@@ -49,6 +49,11 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  restaurantImage: {
+    type: String,
+    required: true,
+  },
+  
   
   // Pre-ordered items
   preOrders: [

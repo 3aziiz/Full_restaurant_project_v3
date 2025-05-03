@@ -1,214 +1,358 @@
-import { useState } from 'react';
-import { Clock, Calendar, Users, Phone, FileText, ShoppingBag, Edit, Trash2, CreditCard, Loader } from 'lucide-react';
-import { toast } from 'react-toastify';
-// Import your RTK Query hooks
-import { 
-    useGetUserBookingsQuery, 
-    useUpdateBookingMutation, 
-    useCancelBookingMutation,
-    useProcessPaymentMutation
-  } from '../../slices/apiSlice';
+import React, { useEffect, useState } from 'react';
+import { useGetUserBookingsQuery, useCancelBookingMutation,useDeleteBookingMutation } from '../../slices/apiSlice';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import CompoUpdate from './CompoUpdate';
+import CompoPay from './CompoPay';
+import { Trash2 } from 'lucide-react';
+// Component for rendering action buttons based on booking status
+const ActionButtons = ({ booking, onUpdate, onPay, onCancel, onDelete }) => {
+  // Only show delete button for pending and cancelled statuses
+  const renderDeleteButton = booking.status === 'pending' || booking.status === 'cancelled';
   
-// User Bookings Component with RTK Query
-export default function UserBookings() {
-  // RTK Query hooks for fetching and managing bookings
-  const { data: bookings, isLoading, refetch } = useGetUserBookingsQuery();
-  const [updateBooking, { isLoading: isUpdating }] = useUpdateBookingMutation();
-  const [deleteBooking, { isLoading: isDeleting }] = useCancelBookingMutation();
-  const [processPayment, { isLoading: isProcessingPayment }] = useProcessPaymentMutation();
-
-  // State for tracking which booking to update or process payment for
-  const [currentBookingId, setCurrentBookingId] = useState(null);
+  if (booking.status === 'pending') {
+    return (
+      <div className="flex gap-2 items-center">
+        {renderDeleteButton && (
+          <button
+            onClick={() => onDelete(booking)}
+            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors duration-200 mr-1"
+            title="Delete booking"
+          >
+            <Trash2 size={18} />
+          </button>
+        )}
+        <button
+          onClick={() => onUpdate(booking)}
+          className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded"
+        >
+          Update
+        </button>
+        <button
+          onClick={() => onCancel(booking)}
+          className="bg-red-400 hover:bg-red-500 text-white py-1 px-4 rounded"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  } else if (booking.status === 'confirmed') {
+    return (
+      <div className="flex gap-2">
+        <button
+          onClick={() => onPay(booking)}
+          className="bg-green-500 hover:bg-green-600 text-white py-1 px-7 rounded"
+        >
+          Pay
+        </button>
+        <button
+          onClick={() => onCancel(booking)}
+          className="bg-red-400 hover:bg-red-500 text-white py-1 px-4 rounded"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  } else if (booking.status === 'cancelled') {
+    return (
+      <div className="flex items-center gap-2">
+        {renderDeleteButton && (
+          <button
+            onClick={() => onDelete(booking)}
+            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors duration-200 mr-1"
+            title="Delete booking"
+          >
+            <Trash2 size={18} />
+          </button>
+        )}
+        <div className="text-red-500 font-medium">
+          Cancelled
+        </div>
+      </div>
+    );
+  }
   
-  // These state variables will control the visibility of the modals
-  // that will be implemented as separate components later
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  // For any other status, return null or a placeholder
+  return null;
+};
 
-  // Handle opening update modal
-  const handleUpdateClick = (bookingId) => {
-    setCurrentBookingId(bookingId);
-    setShowUpdateModal(true);
-    // The actual UpdateBookingForm component will be rendered elsewhere
+
+// Component for displaying pre-ordered items
+const PreOrderedItems = ({ items }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!items || items.length === 0) return null;
+
+  const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  return (
+    <div className="mt-2">
+      <div className="flex items-center gap-1">
+        <span>{items.length} pre-ordered {items.length === 1 ? 'item' : 'items'}</span>
+        <button 
+          onClick={() => setIsOpen(!isOpen)} 
+          className="text-blue-500 hover:underline text-sm flex items-center"
+        >
+          {isOpen ? 'Hide details' : 'View details'} 
+          <svg 
+            className={`ml-1 w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="mt-2 border rounded-md p-3 bg-white">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-gray-600">
+                <th className="py-1">Item</th>
+                <th className="py-1 text-center">Qty</th>
+                <th className="py-1 text-right">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <tr key={index} className="border-t">
+                  <td className="py-2">{item.name}</td>
+                  <td className="py-2 text-center">{item.quantity}</td>
+                  <td className="py-2 text-right">${(item.price * item.quantity).toFixed(2)}</td>
+                </tr>
+              ))}
+              <tr className="border-t font-medium">
+                <td colSpan="2" className="py-2">Total</td>
+                <td className="py-2 text-right">${totalPrice.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Component for displaying booking status
+const StatusBadge = ({ status }) => {
+  let bgColor = '';
+  
+  switch (status) {
+    case 'confirmed':
+      bgColor = 'bg-green-100 text-green-800';
+      break;
+    case 'pending':
+      bgColor = 'bg-yellow-100 text-yellow-800';
+      break;
+    case 'cancelled':
+      bgColor = 'bg-red-100 text-red-800';
+      break;
+    default:
+      bgColor = 'bg-gray-100 text-gray-800';
+  }
+  
+  return (
+    <span className={`${bgColor} px-3 py-1 rounded-full text-sm capitalize`}>
+      {status}
+    </span>
+  );
+};
+
+// Main BookingsComponent
+const BookingsComponent = () => {
+  const { userInfo } = useSelector(state => state.auth);
+  const navigate = useNavigate();
+  const { data: bookings, isLoading, error, refetch } = useGetUserBookingsQuery();
+  const [cancelBooking, { isLoading: isCancelling }] = useCancelBookingMutation();
+  const [deleteBooking, { isLoading: isDeleting }] = useDeleteBookingMutation();
+  
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+
+  useEffect(() => {
+    // Refetch bookings when component mounts
+    refetch();
+  }, [refetch]);
+
+  const handleUpdate = (booking) => {
+    setSelectedBooking(booking);
+    setUpdateModalOpen(true);
   };
 
-  // Handle opening payment modal
-  const handlePaymentClick = (bookingId) => {
-    setCurrentBookingId(bookingId);
-    setShowPaymentModal(true);
-    // The actual PaymentForm component will be rendered elsewhere
+  const handlePay = (booking) => {
+    setSelectedBooking(booking);
+    setPayModalOpen(true);
   };
 
-  // Handle booking deletion
-  const handleDeleteBooking = async (bookingId) => {
-    if (window.confirm('Are you sure you want to cancel this booking?')) {
+  const handleCancel = async (booking) => {
+    try {
+      // Call the cancel booking mutation
+      await cancelBooking(booking._id).unwrap();
+      // After successful cancellation, refetch the bookings
+      refetch();
+    } catch (err) {
+      console.error("Error cancelling booking:", err);
+      // You could set an error state here to display to the user
+    }
+  };
+
+  const handleDelete = async (booking) => {
+    if (window.confirm('Are you sure you want to delete this booking?')) {
       try {
-        await deleteBooking(bookingId).unwrap();
-        refetch(); // Refresh the booking list
-        toast.success('Booking cancelled successfully');
-      } catch (error) {
-        toast.error(error?.data?.message || 'Failed to cancel booking');
+        // Call the delete booking mutation
+        await deleteBooking(booking._id).unwrap();
+        // After successful deletion, refetch the bookings
+        refetch();
+      } catch (err) {
+        console.error("Error deleting booking:", err);
+        // You could set an error state here to display to the user
       }
     }
   };
 
-  // Calculate total price of pre-orders
-  const calculateTotal = (preOrders) => {
-    return preOrders.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2);
+  const formatDateTime = (date, time) => {
+    try {
+      const dateObj = new Date(date);
+      // Format date manually without date-fns
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const year = dateObj.getFullYear();
+      return `${month}/${day}/${year} ${time}`;
+    } catch (error) {
+      return `${date} ${time}`;
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader className="w-12 h-12 animate-spin text-primary" />
-      </div>
-    );
+  const closeUpdateModal = () => {
+    setUpdateModalOpen(false);
+    setSelectedBooking(null);
+    // Refetch bookings after update
+    refetch();
+  };
+
+  const closePayModal = () => {
+    setPayModalOpen(false);
+    setSelectedBooking(null);
+    // Refetch bookings after payment
+    refetch();
+  };
+
+  if (isLoading) return <div className="text-center py-10">Loading your bookings...</div>;
+  
+  if (error) return <div className="text-red-600 text-center py-10">Failed to load bookings: {error.message}</div>;
+  
+  if (!bookings || bookings.length === 0) {
+    return <div className="text-center py-10">You don't have any bookings yet.</div>;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h2 className="text-2xl font-bold mb-6">My Bookings</h2>
+    <div className="w-full px-8 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">My Bookings</h1>
+        <button
+          onClick={() => navigate('/')}
+          className="bg-gray-200 hover:bg-gray-300 text-sm text-gray-800 px-4 py-2 rounded"
+        >
+          Go Back
+        </button>
+      </div>
       
-      {bookings?.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-lg text-gray-600">You don't have any bookings yet.</p>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* Header Row */}
+        <div className="grid grid-cols-6 bg-gray-100 p-4 text-gray-600 font-medium">
+          <div className="col-span-1">Customer</div>
+          <div className="col-span-1">Restaurant</div>
+          <div className="col-span-1">Date & Time</div>
+          <div className="col-span-1">Details</div>
+          <div className="col-span-1">Status</div>
+          <div className="col-span-1">Actions</div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {bookings?.map((booking) => (
-            <div 
-              key={booking._id} 
-              className="border rounded-lg overflow-hidden shadow-md bg-white"
-            >
-              <div className="p-5">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold">{booking.restaurantName}</h3>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    booking.status === 'approved' ? 'bg-green-100 text-green-800' :
-                    booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                  </span>
-                </div>
-                
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center">
-                    <Calendar className="w-5 h-5 mr-2 text-gray-500" />
-                    <span>{new Date(booking.date).toLocaleDateString()}</span>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <Clock className="w-5 h-5 mr-2 text-gray-500" />
-                    <span>{booking.time}</span>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <Users className="w-5 h-5 mr-2 text-gray-500" />
-                    <span>{booking.guests} {booking.guests === 1 ? 'Guest' : 'Guests'}</span>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <Phone className="w-5 h-5 mr-2 text-gray-500" />
-                    <span>{booking.phoneNumber}</span>
-                  </div>
-                  
-                  {booking.specialRequests && (
-                    <div className="flex items-start">
-                      <FileText className="w-5 h-5 mr-2 mt-0.5 text-gray-500" />
-                      <span>{booking.specialRequests}</span>
-                    </div>
+        
+        {/* Booking Rows */}
+        {bookings.map((booking) => (
+          <div key={booking._id} className="border-t border-gray-200">
+            <div className="grid grid-cols-6 p-4 items-center">
+              {/* Customer */}
+              <div className="col-span-1 flex items-center">
+                <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden mr-3">
+                  {booking.userAvatar && (
+                    <img 
+                      src={booking.userAvatar} 
+                      alt={booking.userName} 
+                      className="w-full h-full object-cover"
+                    />
                   )}
                 </div>
-                
-                {booking.preOrders && booking.preOrders.length > 0 && (
-                  <div className="mb-4">
-                    <div className="flex items-center mb-2">
-                      <ShoppingBag className="w-5 h-5 mr-2 text-gray-500" />
-                      <span className="font-medium">Pre-ordered Items</span>
-                    </div>
-                    
-                    <div className="pl-7 space-y-1">
-                      {booking.preOrders.map((item, index) => (
-                        <div key={index} className="flex justify-between">
-                          <span>{item.quantity}x {item.name}</span>
-                          <span>${(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                      <div className="border-t pt-1 flex justify-between font-medium">
-                        <span>Total</span>
-                        <span>${calculateTotal(booking.preOrders)}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex justify-end space-x-2 pt-2">
-                  {booking.status === 'pending' && (
-                    <>
-                      <button
-                        onClick={() => handleUpdateClick(booking._id)}
-                        className="flex items-center px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                        disabled={isUpdating}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Update
-                      </button>
-                      
-                      <button
-                        onClick={() => handleDeleteBooking(booking._id)}
-                        className="flex items-center px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                        disabled={isDeleting}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                  
-                  {booking.status === 'approved' && (
-                    <button
-                      onClick={() => handlePaymentClick(booking._id)}
-                      className="flex items-center px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                      disabled={isProcessingPayment}
-                    >
-                      <CreditCard className="w-4 h-4 mr-1" />
-                      Make Payment
-                    </button>
-                  )}
+                <div>
+                  <div className="font-medium">{booking.userName}</div>
                 </div>
               </div>
+              
+              {/* Restaurant */}
+              <div className="col-span-1 flex items-center">
+                <div className="w-12 h-12 rounded bg-gray-200 overflow-hidden mr-3">
+                  {booking.restaurantImage && (
+                    <img 
+                      src={booking.restaurantImage} 
+                      alt={booking.restaurantName} 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+                <div className="font-medium">{booking.restaurantName}</div>
+              </div>
+              
+              {/* Date & Time */}
+              <div className="col-span-1">
+                <div>{formatDateTime(booking.date, booking.time)}</div>
+              </div>
+              
+              {/* Details */}
+              <div className="col-span-1">
+                <div>Guests: {booking.guests}</div>
+                <PreOrderedItems items={booking.preOrders} />
+              </div>
+              
+              {/* Status */}
+              <div className="col-span-1">
+                <StatusBadge status={booking.status} />
+              </div>
+              
+              {/* Actions */}
+              <div className="col-span-1">
+                <ActionButtons 
+                  booking={booking}
+                  onUpdate={handleUpdate}
+                  onPay={handlePay}
+                  onCancel={handleCancel}
+                  onDelete={handleDelete}
+                />
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
       
-      {/* 
-        The UpdateBookingForm and PaymentForm components will be implemented separately
-        We're just managing their visibility state here
-      */}
-      {showUpdateModal && currentBookingId && (
-        <UpdateBookingForm 
-          bookingId={currentBookingId}
-          onClose={() => setShowUpdateModal(false)}
-          onSuccess={() => {
-            setShowUpdateModal(false);
-            refetch();
-          }}
+      {/* Render Update Modal Component when needed */}
+      {updateModalOpen && selectedBooking && (
+        <CompoUpdate 
+          booking={selectedBooking} 
+          onClose={closeUpdateModal}
         />
       )}
       
-      {showPaymentModal && currentBookingId && (
-        <PaymentForm
-          bookingId={currentBookingId}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={() => {
-            setShowPaymentModal(false);
-            refetch();
-          }}
+      {/* Render Pay Modal Component when needed */}
+      {payModalOpen && selectedBooking && (
+        <CompoPay 
+          booking={selectedBooking} 
+          onClose={closePayModal}
         />
       )}
     </div>
   );
-}
+};
+
+export default BookingsComponent;

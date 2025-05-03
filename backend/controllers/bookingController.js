@@ -10,6 +10,7 @@ const createBooking = async (req, res) => {
     const {
       restaurantId,
       restaurantName,
+      restaurantImage,
       date,
       time,
       guests,
@@ -45,7 +46,7 @@ const createBooking = async (req, res) => {
       // Restaurant information
       restaurantId,
       restaurantName,
-      
+      restaurantImage,
       // Booking details
       date,
       time,

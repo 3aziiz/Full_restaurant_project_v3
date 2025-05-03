@@ -8,7 +8,7 @@ export default function BookingComponent({ restaurant }) {
     // Get userInfo from Redux state
     const { userInfo } = useSelector((state) => state.auth);
     const navigate = useNavigate();
-    
+    console.log(restaurant.images);
     // RTK Query mutation hook
     const [createBooking, { isLoading }] = useCreateBookingMutation();
     
@@ -88,7 +88,7 @@ export default function BookingComponent({ restaurant }) {
           // Restaurant information
           restaurantId: restaurant._id,
           restaurantName: restaurant.name,
-          
+          restaurantImage:restaurant.images?.[0],
           // Booking details
           date: bookingData.date,
           time: bookingData.time,
@@ -98,7 +98,7 @@ export default function BookingComponent({ restaurant }) {
           preOrders: preOrders, // Add pre-ordered items
           status: 'pending' // Default status
         };
-        
+        console.log(bookingPayload);
         // Call the RTK Query mutation
         await createBooking(bookingPayload).unwrap();
         
