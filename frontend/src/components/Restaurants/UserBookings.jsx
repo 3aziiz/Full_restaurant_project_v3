@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useGetUserBookingsQuery, useCancelBookingMutation,useDeleteBookingMutation } from '../../slices/apiSlice';
+import { 
+  useGetUserBookingsQuery, 
+  useCancelBookingMutation,
+  useDeleteBookingMutation,
+  useGetRestaurantByIdQuery
+} from '../../slices/apiSlice';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import CompoUpdate from './CompoUpdate';
 import CompoPay from './CompoPay';
 import { Trash2 } from 'lucide-react';
-// Component for rendering action buttons based on booking status
+
+// Action buttons component remains the same
 const ActionButtons = ({ booking, onUpdate, onPay, onCancel, onDelete }) => {
   // Only show delete button for pending and cancelled statuses
   const renderDeleteButton = booking.status === 'pending' || booking.status === 'cancelled';
@@ -76,8 +82,7 @@ const ActionButtons = ({ booking, onUpdate, onPay, onCancel, onDelete }) => {
   return null;
 };
 
-
-// Component for displaying pre-ordered items
+// PreOrderedItems component remains the same
 const PreOrderedItems = ({ items }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -135,7 +140,7 @@ const PreOrderedItems = ({ items }) => {
   );
 };
 
-// Component for displaying booking status
+// StatusBadge component remains the same
 const StatusBadge = ({ status }) => {
   let bgColor = '';
   
@@ -165,12 +170,24 @@ const BookingsComponent = () => {
   const { userInfo } = useSelector(state => state.auth);
   const navigate = useNavigate();
   const { data: bookings, isLoading, error, refetch } = useGetUserBookingsQuery();
-  const [cancelBooking, { isLoading: isCancelling }] = useCancelBookingMutation();
-  const [deleteBooking, { isLoading: isDeleting }] = useDeleteBookingMutation();
+  const [cancelBooking] = useCancelBookingMutation();
+  const [deleteBooking] = useDeleteBookingMutation();
   
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  
+  // New approach: Keep track of both the restaurant ID and restaurant data
+  const [restaurantId, setRestaurantId] = useState(null);
+  
+  // Use the query hook with the restaurantId
+  const { 
+    data: restaurant, 
+    isLoading: isRestaurantLoading,
+    isSuccess: isRestaurantSuccess
+  } = useGetRestaurantByIdQuery(restaurantId, {
+    skip: !restaurantId, // Skip this query until we have a restaurantId
+  });
 
   useEffect(() => {
     // Refetch bookings when component mounts
@@ -179,8 +196,29 @@ const BookingsComponent = () => {
 
   const handleUpdate = (booking) => {
     setSelectedBooking(booking);
-    setUpdateModalOpen(true);
+    
+    // Set the restaurant ID to trigger fetching restaurant data
+    if (booking && booking.restaurantId) {
+      setRestaurantId(booking.restaurantId);
+    } else if (booking && booking.restaurant && booking.restaurant._id) {
+      // Alternative: if restaurantId is nested inside a restaurant object
+      setRestaurantId(booking.restaurant._id);
+    }
+    
+    // Don't open the modal yet - we'll do it when we have the restaurant data
+    // Only open the modal if we already have the data or if we couldn't determine a restaurant ID
+    if (!booking.restaurantId && (!booking.restaurant || !booking.restaurant._id)) {
+      setUpdateModalOpen(true);
+    }
   };
+
+  // Effect to open modal once restaurant data is loaded
+  useEffect(() => {
+    if (selectedBooking && restaurant && isRestaurantSuccess) {
+      // console.log("Restaurant data loaded successfully:", restaurant);
+      setUpdateModalOpen(true);
+    }
+  }, [selectedBooking, restaurant, isRestaurantSuccess]);
 
   const handlePay = (booking) => {
     setSelectedBooking(booking);
@@ -200,7 +238,7 @@ const BookingsComponent = () => {
   };
 
   const handleDelete = async (booking) => {
-    if (window.confirm('Are you sure you want to delete this booking?')) {
+   
       try {
         // Call the delete booking mutation
         await deleteBooking(booking._id).unwrap();
@@ -209,7 +247,7 @@ const BookingsComponent = () => {
       } catch (err) {
         console.error("Error deleting booking:", err);
         // You could set an error state here to display to the user
-      }
+      
     }
   };
 
@@ -229,6 +267,7 @@ const BookingsComponent = () => {
   const closeUpdateModal = () => {
     setUpdateModalOpen(false);
     setSelectedBooking(null);
+    setRestaurantId(null);
     // Refetch bookings after update
     refetch();
   };
@@ -336,10 +375,23 @@ const BookingsComponent = () => {
         ))}
       </div>
       
+      {/* Loading indicator while fetching restaurant data */}
+      {isRestaurantLoading && selectedBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mb-4"></div>
+              <p className="text-gray-700">Loading restaurant menu data...</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Render Update Modal Component when needed */}
       {updateModalOpen && selectedBooking && (
         <CompoUpdate 
-          booking={selectedBooking} 
+          booking={selectedBooking}
+          restaurant={restaurant} // Pass the fetched restaurant data
           onClose={closeUpdateModal}
         />
       )}

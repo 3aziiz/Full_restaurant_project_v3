@@ -1,67 +1,6 @@
 const Booking = require('../models/bookingModel');
 const Restaurant = require('../models/Restaurant');
 
-// @desc    Get logged in user bookings
-// @route   GET /api/bookings
-// @access  Private
-// const getUserBookings = async (req, res) => {
-//   try {
-//     const bookings = await Booking.find({ userId: req.user._id })
-//       .sort({ createdAt: -1 }); // Sort by newest first
-    
-//     res.status(200).json(bookings);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error: Failed to fetch bookings' });
-//   }
-// };
-
-// // @desc    Create a new booking
-// // @route   POST /api/bookings
-// // @access  Private
-// const createBooking = async (req, res) => {
-//   try {
-//     const {
-//       restaurantId,
-//       restaurantName,
-//       date,
-//       time,
-//       guests,
-//       phoneNumber,
-//       specialRequests,
-//       preOrders
-//     } = req.body;
-
-//     // Check if restaurant exists
-//     const restaurant = await Restaurant.findById(restaurantId);
-//     if (!restaurant) {
-//       return res.status(404).json({ message: 'Restaurant not found' });
-//     }
-
-//     // Create booking
-//     const booking = await Booking.create({
-//       userId: req.user._id,
-//       userName: req.user.name,
-//       userAvatar: req.user.avatar,
-//       restaurantId,
-//       restaurantName,
-//       date,
-//       time,
-//       guests,
-//       phoneNumber,
-//       specialRequests,
-//       preOrders,
-//       status: 'pending'
-//     });
-
-//     res.status(201).json(booking);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error: Failed to create booking' });
-//   }
-// };
-
-// @desc    Get booking by ID
-// @route   GET /api/bookings/:id
-// @access  Private
 const getUserBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({ userId: req.user._id });
@@ -138,10 +77,10 @@ const deleteBooking = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this booking' });
     }
 
-    // Check if booking can be deleted (only pending bookings can be deleted)
-    if (booking.status !== 'pending') {
-      return res.status(400).json({ message: 'Only pending bookings can be cancelled' });
-    }
+    // // Check if booking can be deleted (only pending bookings can be deleted)
+    // if (booking.status !== 'pending') {
+    //   return res.status(400).json({ message: 'Only pending bookings can be cancelled' });
+    // }
 
     await Booking.deleteOne({ _id: req.params.id });
     res.status(200).json({ message: 'Booking cancelled successfully' });
@@ -192,9 +131,65 @@ const processPayment = async (req, res) => {
   }
 };
 
+// @desc    Cancel booking
+// @route   POST /api/bookings/:id/cancel
+// @access  Private
+const cancelBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check if the booking belongs to the logged in user
+    if (booking.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to cancel this booking' });
+    }
+
+    // Check if booking can be cancelled
+    // Only pending or confirmed bookings that haven't been paid can be cancelled
+    if (!['pending', 'confirmed'].includes(booking.status)) {
+      return res.status(400).json({ 
+        message: 'Only pending or confirmed bookings can be cancelled' 
+      });
+    }
+
+    // Check if booking has been paid
+    if (booking.isPaid) {
+      return res.status(400).json({ 
+        message: 'Paid bookings cannot be cancelled. Please contact customer support.' 
+      });
+    }
+
+    // Update booking status to cancelled
+    booking.status = 'cancelled';
+    booking.cancelledAt = Date.now();
+    
+    // Optionally, you can store cancellation reason if provided in the request
+    if (req.body.cancellationReason) {
+      booking.cancellationReason = req.body.cancellationReason;
+    }
+
+    const updatedBooking = await booking.save();
+    
+    // You might want to add notification logic here
+    // e.g., notify restaurant about cancellation
+
+    res.status(200).json({ 
+      message: 'Booking cancelled successfully', 
+      booking: updatedBooking 
+    });
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    res.status(500).json({ message: 'Server error: Failed to cancel booking' });
+  }
+};
+
+
 module.exports = {
   getUserBookings,
- 
+  cancelBooking,
   updateBooking,
   deleteBooking,
   processPayment

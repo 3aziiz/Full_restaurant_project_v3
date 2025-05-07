@@ -336,7 +336,7 @@ getUserBookings: builder.query({
 // Cancel a booking
 cancelBooking: builder.mutation({
   query: (id) => ({
-    url: `api/bookings/${id}/cancel`,
+    url: `api/userBooking/${id}`,
     method: 'PATCH',
     credentials: 'include',
   }),
@@ -349,7 +349,7 @@ cancelBooking: builder.mutation({
 // Update booking details (for pending bookings)
 updateBooking: builder.mutation({
   query: ({ id, bookingData }) => ({
-    url: `api/bookings/${id}`,
+    url: `api/userBooking/${id}`,
     method: 'PUT',
     body: bookingData,
     credentials: 'include',
@@ -379,8 +379,9 @@ PayBooking: builder.mutation({
 // Add the new delete booking mutation
 deleteBooking: builder.mutation({
   query: (id) => ({
-    url: `/bookings/${id}`,
+    url: `api/userBooking/${id}`,
     method: 'DELETE',
+    credentials: 'include',
   }),
   // Invalidate the user bookings cache to trigger a refetch
   invalidatesTags: ['UserBookings'],
