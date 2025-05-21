@@ -135,13 +135,13 @@ const LoginPage = ({ setShowLogin }) => {
                 Sign Up for a Seamless Dining Experience
               </h1>
               <p className="text-lg md:text-xl text-white">
-                Join Scan & Dine &rarr;
+                Join QuickTable &rarr;
               </p>
             </div>
           ) : (
             <div className="absolute top-[20%] left-[10%] flex flex-col image_container z-10">
               <h1 className="text-3xl md:text-4xl text-white font-bold my-8">
-                Welcome Back to Scan & Dine!
+                Welcome Back to QuickTable !
               </h1>
               <p className="text-lg md:text-xl text-white">Ready to Savor?</p>
             </div>
@@ -157,7 +157,7 @@ const LoginPage = ({ setShowLogin }) => {
         {/* Right side with form */}
         <div className="w-full md:w-1/2 bg-[#f5f5f5] flex flex-col p-4 md:p-8 justify-between items-center login_container">
           <h1 className="text-2xl text-[#ea580c] font-semibold mb-4">
-            Scan & Dine
+            QuickTable
           </h1>
 
           <div className="w-full flex flex-col max-w-[550px]">
@@ -292,17 +292,17 @@ const LoginPage = ({ setShowLogin }) => {
                 )}
               </div>
 
-              <div className="w-full flex flex-col items-center relative py-4">
-                <div className="w-full h-[1px] bg-black/40 relative lineOfor"></div>
-                <p className="text-lg absolute top-1/2 transform -translate-y-1/2 text-black/80 bg-[#f5f5f5] px-2">
-                  Or
-                </p>
-              </div>
+                {/* <div className="w-full flex flex-col items-center relative py-4">
+                  <div className="w-full h-[1px] bg-black/40 relative lineOfor"></div>
+                  <p className="text-lg absolute top-1/2 transform -translate-y-1/2 text-black/80 bg-[#f5f5f5] px-2">
+                    Or
+                  </p>
+                </div> */}
 
-              <div className="w-full font-semibold text-[#060606] my-2 bg-white border border-black/40 rounded-md p-4 text-center flex items-center justify-center cursor-pointer hover:bg-black/85 hover:text-white transition-colors duration-300">
+              {/* <div className="w-full font-semibold text-[#060606] my-2 bg-white border border-black/40 rounded-md p-4 text-center flex items-center justify-center cursor-pointer hover:bg-black/85 hover:text-white transition-colors duration-300">
               <box-icon name='google' type='logo' color='#ffffff' ></box-icon>
                 Sign Up With Google
-              </div>
+              </div> */}
             </form>
           </div>
           {currState === "Login" ? (

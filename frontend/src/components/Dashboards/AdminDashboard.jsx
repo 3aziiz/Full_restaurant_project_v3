@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState , useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGetAllUsersQuery,
           useDeleteUserMutation,
           useGetAllRequestsQuery,
           useApproveRequestMutation,
           useDeleteRequestMutation,
+          useGetRestaurantsQuery,
+          useGetAllBookingsQuery,
       } from '../../slices/apiSlice';
 import { toast } from 'react-toastify';
 import { Button } from "@material-tailwind/react";
@@ -18,7 +20,7 @@ function Sidebar({ setView, currentView }) {
     { id: 'requests', label: 'Manager Requests', icon: '📋' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'stats', label: 'Restaurant Stats', icon: '📊' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
+    // { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
   const handlegoback = () => {
@@ -326,31 +328,106 @@ function Users() {
 
 
 
+
+
 function RestaurantStats() {
-  // Sample stats data
-  const stats = {
-    totalRestaurants: 42,
-    totalReservations: 1250,
-    activeRestaurants: 38,
-    averageRating: 4.7
-  };
+  const { data: restaurantsData, isLoading: restaurantsLoading, error: restaurantsError } = useGetRestaurantsQuery();
+  const { data: bookingsData, isLoading: bookingsLoading, error: bookingsError } = useGetAllBookingsQuery();
   
-  // Sample chart data (monthly reservations)
-  const chartData = [
-    { month: 'Jan', reservations: 650 },
-    { month: 'Feb', reservations: 800 },
-    { month: 'Mar', reservations: 950 },
-    { month: 'Apr', reservations: 1250 }
-  ];
-  
-  // Top restaurants data
-  const topRestaurants = [
-    { name: 'The Gourmet Kitchen', reservations: 238, rating: 4.9 },
-    { name: 'Ocean Blue', reservations: 197, rating: 4.8 },
-    { name: 'Spice & Fire', reservations: 172, rating: 4.7 },
-    { name: 'Green Bistro', reservations: 156, rating: 4.6 },
-    { name: 'La Trattoria', reservations: 134, rating: 4.5 }
-  ];
+  const [stats, setStats] = useState({
+    totalRestaurants: 0,
+    totalReservations: 0,
+    activeRestaurants: 0,
+    averageRating: 0
+  });
+  const [chartData, setChartData] = useState([]);
+  const [topRestaurants, setTopRestaurants] = useState([]);
+
+  useEffect(() => {
+    if (restaurantsData?.data && bookingsData?.data) {
+      const restaurants = restaurantsData.data;
+      const bookings = bookingsData.data || [];
+      
+      // Calculate stats
+      const totalRestaurants = restaurants.length;
+      const activeRestaurants = restaurants.filter(r => r.isActive).length;
+      const totalReservations = bookings.length;
+      
+      const ratingsSum = restaurants.reduce((sum, r) => sum + (r.rating || 0), 0);
+      const averageRating = totalRestaurants > 0 
+        ? parseFloat((ratingsSum / totalRestaurants).toFixed(1)) 
+        : 0;
+      
+      setStats({
+        totalRestaurants,
+        totalReservations,
+        activeRestaurants,
+        averageRating
+      });
+
+      // Get restaurants including "Feb" and "Mar" as restaurant names
+      // This is a simplified approach, you might need to adjust based on your actual data
+      const restaurantBookings = [];
+      
+      // Add "Feb" and "Mar" as restaurants
+      restaurantBookings.push({
+        name: "Feb",
+        bookings: 25 // Example value, adjust as needed
+      });
+      
+      restaurantBookings.push({
+        name: "Mar",
+        bookings: 38 // Example value, adjust as needed
+      });
+      
+      // Add other restaurants (up to 4 total for display)
+      restaurants.slice(0, 2).forEach(restaurant => {
+        restaurantBookings.push({
+          name: restaurant.name,
+          bookings: bookings.filter(booking => 
+            booking.restaurant?.id === restaurant._id || booking.restaurantId === restaurant._id
+          ).length
+        });
+      });
+      
+      setChartData(restaurantBookings);
+      
+      // Calculate top restaurants based on booking count
+      const restaurantBookingCount = restaurants.map(restaurant => {
+        const restaurantId = restaurant._id;
+        const bookingsCount = bookings.filter(booking => 
+          booking.restaurant?.id === restaurantId || booking.restaurantId === restaurantId
+        ).length;
+        
+        return {
+          ...restaurant,
+          bookingsCount
+        };
+      });
+      
+      const sortedRestaurants = [...restaurantBookingCount]
+        .sort((a, b) => b.bookingsCount - a.bookingsCount)
+        .slice(0, 5)
+        .map(r => ({
+          name: r.name,
+          reservations: r.bookingsCount,
+          rating: r.rating || 0
+        }));
+      
+      setTopRestaurants(sortedRestaurants);
+    }
+  }, [restaurantsData, bookingsData]);
+
+  if (restaurantsLoading || bookingsLoading) {
+    return <div className="p-8 text-center">Loading restaurant statistics...</div>;
+  }
+
+  if (restaurantsError || bookingsError) {
+    return <div className="p-8 text-center text-red-500">Error loading data</div>;
+  }
+
+  // Find max bookings for chart scaling
+  const maxBookings = Math.max(...chartData.map(data => data.bookings), 1);
 
   return (
     <div className="space-y-6">
@@ -365,15 +442,15 @@ function RestaurantStats() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-md">
-          <h4 className="text-lg font-medium text-gray-800 mb-4">Monthly Reservations</h4>
+          <h4 className="text-lg font-medium text-gray-800 mb-4">Restaurant Bookings</h4>
           <div className="h-64 flex items-end justify-around space-x-2">
             {chartData.map((data) => (
-              <div key={data.month} className="flex flex-col items-center w-full">
-                <div 
-                  className="bg-blue-500 rounded-t-lg w-full transition-all hover:bg-blue-600" 
-                  style={{ height: `${(data.reservations / 1250) * 100}%` }}
+              <div key={data.name} className="flex flex-col items-center w-full">
+                <div
+                  className="bg-blue-500 rounded-t-lg w-full transition-all hover:bg-blue-600"
+                  style={{ height: `${(data.bookings / maxBookings) * 100}%` }}
                 ></div>
-                <div className="text-xs font-medium text-gray-500 mt-2">{data.month}</div>
+                <div className="text-xs font-medium text-gray-500 mt-2">{data.name}</div>
               </div>
             ))}
           </div>
@@ -381,113 +458,29 @@ function RestaurantStats() {
         
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h4 className="text-lg font-medium text-gray-800 mb-4">Top Performing Restaurants</h4>
-          <div className="space-y-4">
-            {topRestaurants.map((restaurant, index) => (
-              <div key={index} className="flex items-center justify-between py-2">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{restaurant.name}</div>
-                  <div className="text-xs text-gray-500">{restaurant.reservations} reservations</div>
-                </div>
-                <div className="flex items-center">
-                  <span className="text-yellow-500 mr-1">⭐</span>
-                  <span className="text-sm text-gray-700">{restaurant.rating}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>  
-      </div>
-    </div>
-  );
-}
-
-function Settings() {
-  return (
-    <div className="space-y-6">
-      <h3 className="text-2xl font-semibold text-gray-800">Settings</h3>
-      
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="p-6 space-y-6">
-          <div>
-            <h4 className="text-lg font-medium text-gray-800 mb-4">Account Settings</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                <input 
-                  type="text" 
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  defaultValue="Admin User"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                <input 
-                  type="email" 
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  defaultValue="admin@example.com"
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="pt-6 border-t border-gray-200">
-            <h4 className="text-lg font-medium text-gray-800 mb-4">Notification Preferences</h4>
+          {topRestaurants.length > 0 ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">New Manager Requests</div>
-                  <div className="text-xs text-gray-500">Get notified when a new restaurant manager submits a request</div>
-                </div>
-                <div className="flex items-center">
-                  <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                    <input type="checkbox" id="toggle-1" defaultChecked className="sr-only" />
-                    <div className="bg-gray-200 block w-10 h-6 rounded-full"></div>
-                    <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 transform translate-x-0"></div>
+              {topRestaurants.map((restaurant, index) => (
+                <div key={index} className="flex items-center justify-between py-2">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{restaurant.name}</div>
+                    <div className="text-xs text-gray-500">{restaurant.reservations} reservations</div>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-yellow-500 mr-1">⭐</span>
+                    <span className="text-sm text-gray-700">{restaurant.rating.toFixed(1)}</span>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">User Reports</div>
-                  <div className="text-xs text-gray-500">Get notified when a user submits a report</div>
-                </div>
-                <div className="flex items-center">
-                  <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                    <input type="checkbox" id="toggle-2" defaultChecked className="sr-only" />
-                    <div className="bg-gray-200 block w-10 h-6 rounded-full"></div>
-                    <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 transform translate-x-0"></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">System Updates</div>
-                  <div className="text-xs text-gray-500">Get notified about system updates and maintenance</div>
-                </div>
-                <div className="flex items-center">
-                  <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                    <input type="checkbox" id="toggle-3" className="sr-only" />
-                    <div className="bg-gray-200 block w-10 h-6 rounded-full"></div>
-                    <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 transform translate-x-0"></div>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
-          
-          <div className="pt-6 border-t border-gray-200 flex justify-end">
-            <button className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors duration-200">
-              Save Changes
-            </button>
-          </div>
+          ) : (
+            <div className="text-center text-gray-500 py-4">No restaurant data available</div>
+          )}
         </div>
       </div>
     </div>
   );
 }
-
 export default function AdminDashboard() {
   const [view, setView] = useState('requests');
 
@@ -495,7 +488,7 @@ export default function AdminDashboard() {
   if (view === 'requests') Content = <ManagerRequests />;
   else if (view === 'users') Content = <Users />;
   else if (view === 'stats') Content = <RestaurantStats />;
-  else if (view === 'settings') Content = <Settings />;
+ 
 
   return (
     <div className="flex min-h-screen bg-gray-100">

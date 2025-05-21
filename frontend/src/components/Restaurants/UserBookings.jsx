@@ -1,221 +1,165 @@
+// BookingsComponent.jsx
 import React, { useEffect, useState } from 'react';
 import { 
   useGetUserBookingsQuery, 
   useCancelBookingMutation,
   useDeleteBookingMutation,
-  useGetRestaurantByIdQuery
+  useGetRestaurantByIdQuery,
+  useVerifyPaymentMutation
 } from '../../slices/apiSlice';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CompoUpdate from './CompoUpdate';
 import CompoPay from './CompoPay';
-import { Trash2 } from 'lucide-react';
-
-// Action buttons component remains the same
-const ActionButtons = ({ booking, onUpdate, onPay, onCancel, onDelete }) => {
-  // Only show delete button for pending and cancelled statuses
-  const renderDeleteButton = booking.status === 'pending' || booking.status === 'cancelled';
-  
-  if (booking.status === 'pending') {
-    return (
-      <div className="flex gap-2 items-center">
-        {renderDeleteButton && (
-          <button
-            onClick={() => onDelete(booking)}
-            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors duration-200 mr-1"
-            title="Delete booking"
-          >
-            <Trash2 size={18} />
-          </button>
-        )}
-        <button
-          onClick={() => onUpdate(booking)}
-          className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded"
-        >
-          Update
-        </button>
-        <button
-          onClick={() => onCancel(booking)}
-          className="bg-red-400 hover:bg-red-500 text-white py-1 px-4 rounded"
-        >
-          Cancel
-        </button>
-      </div>
-    );
-  } else if (booking.status === 'confirmed') {
-    return (
-      <div className="flex gap-2">
-        <button
-          onClick={() => onPay(booking)}
-          className="bg-green-500 hover:bg-green-600 text-white py-1 px-7 rounded"
-        >
-          Pay
-        </button>
-        <button
-          onClick={() => onCancel(booking)}
-          className="bg-red-400 hover:bg-red-500 text-white py-1 px-4 rounded"
-        >
-          Cancel
-        </button>
-      </div>
-    );
-  } else if (booking.status === 'cancelled') {
-    return (
-      <div className="flex items-center gap-2">
-        {renderDeleteButton && (
-          <button
-            onClick={() => onDelete(booking)}
-            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors duration-200 mr-1"
-            title="Delete booking"
-          >
-            <Trash2 size={18} />
-          </button>
-        )}
-        <div className="text-red-500 font-medium">
-          Cancelled
-        </div>
-      </div>
-    );
-  }
-  
-  // For any other status, return null or a placeholder
-  return null;
-};
-
-// PreOrderedItems component remains the same
-const PreOrderedItems = ({ items }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  if (!items || items.length === 0) return null;
-
-  const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-  return (
-    <div className="mt-2">
-      <div className="flex items-center gap-1">
-        <span>{items.length} pre-ordered {items.length === 1 ? 'item' : 'items'}</span>
-        <button 
-          onClick={() => setIsOpen(!isOpen)} 
-          className="text-blue-500 hover:underline text-sm flex items-center"
-        >
-          {isOpen ? 'Hide details' : 'View details'} 
-          <svg 
-            className={`ml-1 w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
-
-      {isOpen && (
-        <div className="mt-2 border rounded-md p-3 bg-white">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-gray-600">
-                <th className="py-1">Item</th>
-                <th className="py-1 text-center">Qty</th>
-                <th className="py-1 text-right">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={index} className="border-t">
-                  <td className="py-2">{item.name}</td>
-                  <td className="py-2 text-center">{item.quantity}</td>
-                  <td className="py-2 text-right">${(item.price * item.quantity).toFixed(2)}</td>
-                </tr>
-              ))}
-              <tr className="border-t font-medium">
-                <td colSpan="2" className="py-2">Total</td>
-                <td className="py-2 text-right">${totalPrice.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// StatusBadge component remains the same
-const StatusBadge = ({ status }) => {
-  let bgColor = '';
-  
-  switch (status) {
-    case 'confirmed':
-      bgColor = 'bg-green-100 text-green-800';
-      break;
-    case 'pending':
-      bgColor = 'bg-yellow-100 text-yellow-800';
-      break;
-    case 'cancelled':
-      bgColor = 'bg-red-100 text-red-800';
-      break;
-    default:
-      bgColor = 'bg-gray-100 text-gray-800';
-  }
-  
-  return (
-    <span className={`${bgColor} px-3 py-1 rounded-full text-sm capitalize`}>
-      {status}
-    </span>
-  );
-};
+import { BookingUIComponents } from './BookingUIComponents';
+import { toast } from 'react-toastify';
 
 // Main BookingsComponent
 const BookingsComponent = () => {
   const { userInfo } = useSelector(state => state.auth);
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: bookings, isLoading, error, refetch } = useGetUserBookingsQuery();
   const [cancelBooking] = useCancelBookingMutation();
   const [deleteBooking] = useDeleteBookingMutation();
+  const [verifyPayment, { isLoading: isVerifyLoading }] = useVerifyPaymentMutation();
   
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [verificationStatus, setVerificationStatus] = useState('');
+  const [verificationError, setVerificationError] = useState('');
   
-  // New approach: Keep track of both the restaurant ID and restaurant data
   const [restaurantId, setRestaurantId] = useState(null);
   
-  // Use the query hook with the restaurantId
   const { 
     data: restaurant, 
     isLoading: isRestaurantLoading,
     isSuccess: isRestaurantSuccess
   } = useGetRestaurantByIdQuery(restaurantId, {
-    skip: !restaurantId, // Skip this query until we have a restaurantId
+    skip: !restaurantId,
   });
 
   useEffect(() => {
-    // Refetch bookings when component mounts
     refetch();
-  }, [refetch]);
+    
+    const queryParams = new URLSearchParams(location.search);
+    const success = queryParams.get('success');
+    const status = queryParams.get('status');
+    const bookingId = queryParams.get('bookingId');
+    
+    const isReturnFromPayment = 
+      queryParams.get('payment') === 'return' || 
+      (status && (status === 'success' || status === 'fail')) ||
+      (success === 'true' || success === 'false') ||
+      location.pathname.includes('/booking/success') ||
+      location.pathname.includes('/booking/failed');
+      
+    console.log('Is return from payment gateway:', isReturnFromPayment);
+    console.log('URL parameters:', { success, status, bookingId });
+    
+    if (isReturnFromPayment && bookingId) {
+      console.log('Detected return from payment gateway with bookingId:', bookingId);
+      
+      const booking = bookings?.find(b => b._id === bookingId);
+      
+      if (booking) {
+        console.log('Found matching booking:', booking._id);
+        setSelectedBooking(booking);
+        
+        const paymentId = localStorage.getItem(`payment_id_${bookingId}`) || 
+                          localStorage.getItem('last_payment_id');
+        
+        if (paymentId) {
+          console.log('Found payment ID in localStorage:', paymentId);
+          setVerificationStatus('verifying');
+          handleVerifyPayment(paymentId, booking);
+        } else {
+          console.error('No payment ID found for verification');
+          setVerificationStatus('failed');
+          setVerificationError('Payment verification failed: Missing payment ID');
+        }
+        
+        setPayModalOpen(true);
+      } else {
+        console.error('Could not find booking with ID:', bookingId);
+      }
+    }
+  }, [refetch, location.search, location.pathname, bookings]);
+
+  const handleVerifyPayment = async (paymentId, booking) => {
+    console.log('==== VERIFY PAYMENT DEBUG INFO ====');
+    console.log('handleVerifyPayment called with paymentId:', paymentId);
+    
+    if (!paymentId) {
+      console.error('No payment ID available for verification');
+      setVerificationStatus('failed');
+      setVerificationError('Payment verification failed: Missing payment ID');
+      return;
+    }
+    
+    try {
+      console.log('Calling verifyPayment API with payload:', { paymentId });
+      const res = await verifyPayment({ paymentId }).unwrap();
+      console.log('Payment verification API response:', res);
+      
+      if (res.success) {
+        console.log('Payment verification successful!');
+        setVerificationStatus('success');
+        
+        toast.success('Payment completed successfully!', {
+          position: "top-right"
+        });
+        
+        refetch();
+        
+        setTimeout(() => {
+          setPayModalOpen(false);
+          setSelectedBooking(null);
+          navigate('/bookings', { replace: true });
+        }, 3000);
+      } else {
+        console.log('Payment verification API returned failure:', res);
+        setVerificationStatus('failed');
+        setVerificationError(res.message || 'Payment verification failed.');
+        toast.error('Payment failed. Please try again.', {
+          position: "top-right"
+        });
+      }
+    } catch (err) {
+      console.error('Payment verification API error:', err);
+      setVerificationStatus('failed');
+      const errorMessage = err?.data?.message || 'Payment verification failed. Please try again.';
+      setVerificationError(errorMessage);
+      toast.error(errorMessage, {
+        position: "top-right"
+      });
+    }
+    
+    if (booking?._id) {
+      localStorage.removeItem(`payment_id_${booking._id}`);
+    }
+    localStorage.removeItem('last_payment_id');
+    console.log('Removed payment IDs from localStorage');
+    console.log('==================================');
+  };
 
   const handleUpdate = (booking) => {
     setSelectedBooking(booking);
     
-    // Set the restaurant ID to trigger fetching restaurant data
     if (booking && booking.restaurantId) {
       setRestaurantId(booking.restaurantId);
     } else if (booking && booking.restaurant && booking.restaurant._id) {
-      // Alternative: if restaurantId is nested inside a restaurant object
       setRestaurantId(booking.restaurant._id);
     }
     
-    // Don't open the modal yet - we'll do it when we have the restaurant data
-    // Only open the modal if we already have the data or if we couldn't determine a restaurant ID
     if (!booking.restaurantId && (!booking.restaurant || !booking.restaurant._id)) {
       setUpdateModalOpen(true);
     }
   };
 
-  // Effect to open modal once restaurant data is loaded
   useEffect(() => {
     if (selectedBooking && restaurant && isRestaurantSuccess) {
-      // console.log("Restaurant data loaded successfully:", restaurant);
       setUpdateModalOpen(true);
     }
   }, [selectedBooking, restaurant, isRestaurantSuccess]);
@@ -223,38 +167,31 @@ const BookingsComponent = () => {
   const handlePay = (booking) => {
     setSelectedBooking(booking);
     setPayModalOpen(true);
+    setVerificationStatus('');
+    setVerificationError('');
   };
 
   const handleCancel = async (booking) => {
     try {
-      // Call the cancel booking mutation
       await cancelBooking(booking._id).unwrap();
-      // After successful cancellation, refetch the bookings
       refetch();
     } catch (err) {
       console.error("Error cancelling booking:", err);
-      // You could set an error state here to display to the user
     }
   };
 
   const handleDelete = async (booking) => {
-   
-      try {
-        // Call the delete booking mutation
-        await deleteBooking(booking._id).unwrap();
-        // After successful deletion, refetch the bookings
-        refetch();
-      } catch (err) {
-        console.error("Error deleting booking:", err);
-        // You could set an error state here to display to the user
-      
+    try {
+      await deleteBooking(booking._id).unwrap();
+      refetch();
+    } catch (err) {
+      console.error("Error deleting booking:", err);
     }
   };
 
   const formatDateTime = (date, time) => {
     try {
       const dateObj = new Date(date);
-      // Format date manually without date-fns
       const month = String(dateObj.getMonth() + 1).padStart(2, '0');
       const day = String(dateObj.getDate()).padStart(2, '0');
       const year = dateObj.getFullYear();
@@ -268,15 +205,33 @@ const BookingsComponent = () => {
     setUpdateModalOpen(false);
     setSelectedBooking(null);
     setRestaurantId(null);
-    // Refetch bookings after update
     refetch();
   };
 
   const closePayModal = () => {
     setPayModalOpen(false);
     setSelectedBooking(null);
-    // Refetch bookings after payment
+    setVerificationStatus('');
+    setVerificationError('');
     refetch();
+    
+    if (location.search.includes('success') || location.search.includes('bookingId')) {
+      navigate('/bookings', { replace: true });
+    }
+  };
+
+  const handleRetryVerification = () => {
+    if (!selectedBooking) return;
+    
+    const paymentId = localStorage.getItem(`payment_id_${selectedBooking._id}`) || 
+                      localStorage.getItem('last_payment_id');
+                      
+    if (paymentId) {
+      setVerificationStatus('verifying');
+      handleVerifyPayment(paymentId, selectedBooking);
+    } else {
+      setVerificationError('No payment ID found for verification');
+    }
   };
 
   if (isLoading) return <div className="text-center py-10">Loading your bookings...</div>;
@@ -286,6 +241,8 @@ const BookingsComponent = () => {
   if (!bookings || bookings.length === 0) {
     return <div className="text-center py-10">You don't have any bookings yet.</div>;
   }
+
+  const { ActionButtons, StatusBadge, PreOrderedItems, PaymentStatusBadge } = BookingUIComponents;
 
   return (
     <div className="w-full px-8 py-8">
@@ -353,6 +310,9 @@ const BookingsComponent = () => {
               <div className="col-span-1">
                 <div>Guests: {booking.guests}</div>
                 <PreOrderedItems items={booking.preOrders} />
+                
+                {/* Improved payment status indicator */}
+                <PaymentStatusBadge paymentStatus={booking.paymentStatus} />
               </div>
               
               {/* Status */}
@@ -391,7 +351,7 @@ const BookingsComponent = () => {
       {updateModalOpen && selectedBooking && (
         <CompoUpdate 
           booking={selectedBooking}
-          restaurant={restaurant} // Pass the fetched restaurant data
+          restaurant={restaurant}
           onClose={closeUpdateModal}
         />
       )}
@@ -401,6 +361,10 @@ const BookingsComponent = () => {
         <CompoPay 
           booking={selectedBooking} 
           onClose={closePayModal}
+          verificationStatus={verificationStatus}
+          verificationError={verificationError}
+          onRetryVerification={handleRetryVerification}
+          isVerifyLoading={isVerifyLoading}
         />
       )}
     </div>

@@ -17,7 +17,7 @@ function Footer() {
         <div className="flex flex-wrap">
           <div className="w-full lg:w-6/12 px-4">
             <img
-              src={assets.appXlogo}
+              src={assets.firstlogo}
               alt="Scan&Dine Logo"
               className="h-[150px] w-auto mb-4 transition-transform duration-300 hover:scale-105"
             />
@@ -25,10 +25,9 @@ function Footer() {
               variant="lead"
               className="text-gray-300 mt-0 mb-2 text-sm lg:text-base"
             >
-              Scan&Dine is a revolutionary restaurant management system that
-              redefines the dining experience. Our innovative QR code technology
-              empowers restaurants to streamline operations and delight customers
-              with a seamless and efficient ordering process.
+            QuickTable is a revolutionary restaurant management system that redefines the dining experience.
+             Our innovative solution empowers restaurants
+             to streamline operations and delight customers with a seamless and efficient booking process.
             </Typography>
             <div className="mt-6 flex gap-4 items-center">
               <IconButton color="black" className="rounded-full shadow-md hover:bg-[#ff6347] hover:decoration-deep-orange-300 hover:text-white">
@@ -52,7 +51,7 @@ function Footer() {
                   Company
                 </Typography>
                 <ul className="list-unstyled">
-                  {['Home', 'About Us', 'Delivery', 'Privacy Policy'].map((item) => (
+                  {['Home', 'About Us',  'Privacy Policy'].map((item) => (
                     <li key={item}>
                       <Typography
                         as="a"
@@ -79,7 +78,7 @@ function Footer() {
                       variant="small"
                       className="text-gray-400"
                     >
-                      +1 263-837-3948
+                      +216 20-304-050
                     </Typography>
                   </li>
                   <li>
@@ -87,7 +86,7 @@ function Footer() {
                       variant="small"
                       className="text-gray-400 hover:text-[#fa2600] cursor-pointer"
                     >
-                      scandine69@gmail.com
+                      QuickTable@gmail.com
                     </Typography>
                   </li>
                 </ul>
@@ -127,7 +126,7 @@ function Footer() {
               variant="small"
               className="text-gray-400"
             >
-              Copyright © {currentYear} Scan&Dine.in - All Rights Reserved.
+              Copyright © {currentYear} QuickTable.in - All Rights Reserved.
             </Typography>
           </div>
         </div>

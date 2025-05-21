@@ -16,6 +16,9 @@ import menu_6 from './menu_6.png'
 import menu_7 from './menu_7.png'
 import menu_8 from './menu_8.png'
 import salmon from './salmon.jpg'
+import logoapp from './logoapp.png'
+import firstlogo from './firstlogo.png'
+
 
 import offer_card_1 from './offer_card_1.png'
 import offer_card_2 from './offer_card_2.png'
@@ -99,7 +102,9 @@ export const assets = {
     burger,
     appXlogo,
     header_video,
-    Black_banner
+    Black_banner,
+    logoapp,
+    firstlogo,
 }
 
 export const offer_list = {

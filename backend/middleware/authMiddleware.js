@@ -5,10 +5,10 @@ dotenv.config();
 
 // Middleware to verify JWT and attach user to request
 const authMiddleware = async (req, res, next) => {
-  console.log(req.headers.authorization);
+  // console.log(req.headers.authorization);
   // const token = req.headers.authorization?.split(' ')[1]; // Extract token
   const token = req.cookies.token;
-  console.log("token",token);
+  // console.log("token",token);
   if (!token) return res.status(401).json({ message: 'Unauthorized - No token provided' });
   
   try {

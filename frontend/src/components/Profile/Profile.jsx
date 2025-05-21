@@ -273,7 +273,7 @@ const Profile = () => {
                 variant="h2"
                 className="text-center text-white font-bold tracking-wider animate-pulse"
               >
-                Welcome to Scan&Dine
+                Welcome to QuickTable
               </Typography>
             </div>
           </CardHeader>

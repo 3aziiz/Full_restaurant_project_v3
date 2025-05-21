@@ -26,10 +26,9 @@ import UserBookings from './components/Restaurants/UserBookings';
 import Payment from './components/Payment/Payment';
 import ResetPassword from './components/ResetPassword/ResetPassword';
 import { useSelector } from 'react-redux';
-
-
 import RestaurantDetail  from './components/Restaurants/RestaurantDetail';
-
+import About from './pages/publicPages/About';
+import Contact from './pages/publicPages/Contact';
 // Layout component that wraps routes with Appbar and Footer
 const MainLayout = ({ children, setShowLogin }) => {
   return (
@@ -48,23 +47,12 @@ const App = () => {
   const { openLogin } = useSelector((state) => state.auth);
   const location = useLocation();
   
-  // // Check if current path is admin or manager dashboard
-  // const isFullScreenRoute = () => {
-  //   const path = location.pathname;
-  //   return path.startsWith('/admin') || path.startsWith('/manager');
-    
-  // };
-
   const isFullScreenRoute = () => {
     const path = location.pathname;
     // Match /restaurants/{id} format
     const isRestaurantView = /^\/restaurants\/[^\/]+$/.test(path);
     return path.startsWith('/admin') || path.startsWith('/manager') || isRestaurantView;
   };
-
-
-
-
 
   return (
     <ThemeProvider value={materialTheme}>
@@ -85,16 +73,17 @@ const App = () => {
             {/* Public routes */}
             <Route path="/" element={<Home />} exact />
             <Route path="/partner" element={<Partner />} />
-            
-           
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/restaurant/:id/view" element={<RestaurantTemplate />} />
-
 
             <Route path="/reset-password" element={<ForgetPassword />} />
             <Route path="/vieworders" element={<OrderDetails />} />
             <Route path="/table/details" element={<UserBookings />} />
-           
-
+            
+            {/* Payment return routes - Add these new routes */}
+            <Route path="/booking/success" element={<UserBookings />} />
+            <Route path="/booking/failed" element={<UserBookings />} />
             
             {/* User Routes */}
             <Route path="/reset-password/new" element={<ResetPassword />} />
@@ -105,9 +94,9 @@ const App = () => {
             <Route path="" element={<PrivateRoute />}>
               <Route path="/cart" element={<Cart />} />
               <Route path="/:id/book-table" element={<UserBookings />} />
+              <Route path="/bookings" element={<UserBookings />} />
               <Route path="/order" element={<PlaceOrder />} />
               <Route path="/order/:id" element={<Payment />} />
-              {/* <Route path="/restaurant/:id/menu" element={<RestaurantMenu />} /> */}
             </Route>
           </Routes>
         </MainLayout>

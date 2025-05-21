@@ -15,6 +15,7 @@ const userRoutes=require('./routes/userRoutes');
 const managerRoutes = require('./routes/managerRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const userBookingRoutes = require ('./routes/userBookingRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 dotenv.config();
 
 const app = express();
@@ -65,6 +66,9 @@ app.use('/api/bookings', bookingRoutes);
 
 //userBookingRoutes
 app.use('/api/userBooking',userBookingRoutes);
+
+// payment routes
+app.use('/api/payments', paymentRoutes);
 
 
 // // After all routes are defined

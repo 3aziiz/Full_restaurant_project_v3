@@ -178,11 +178,87 @@ const getManagerBookings = async (req, res) => {
       res.status(500).json({ message: 'Failed to update booking status', error: error.message });
     }
   };
-
+const getAllBookings = async (req, res) => {
+  try {
+    // Optional query parameters for filtering
+    const { status, startDate, endDate } = req.query;
+    
+    // Build query object
+    const query = {};
+    
+    // Add status filter if provided
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    // Add date range filter if provided
+    if (startDate && endDate) {
+      query.date = { 
+        $gte: new Date(startDate), 
+        $lte: new Date(endDate) 
+      };
+    } else if (startDate) {
+      query.date = { $gte: new Date(startDate) };
+    } else if (endDate) {
+      query.date = { $lte: new Date(endDate) };
+    }
+    
+    // Fetch all bookings with optional filters
+    const bookings = await Booking.find(query)
+      .sort({ date: -1, time: -1 }) // Sort by date and time, newest first
+      .populate('restaurantId', 'name images') // Get restaurant info
+      .populate('userId', 'name email profileImage'); // Get user info
+    
+    if (bookings.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+    
+    // Format response data
+    const formattedBookings = bookings.map(booking => {
+      return {
+        id: booking._id,
+        customerName: booking.userName || (booking.userId?.name || 'Guest'),
+        contact: booking.userId?.email || '',
+        userAvatar: booking.userAvatar || booking.userId?.profileImage || '',
+        restaurant: {
+          id: booking.restaurantId?._id || booking.restaurantId,
+          name: booking.restaurantName || (booking.restaurantId?.name || ''),
+          image: booking.restaurantImage || (booking.restaurantId?.images?.[0] || '')
+        },
+        date: booking.date,
+        time: booking.time,
+        guests: booking.guests,
+        status: booking.status,
+        notes: booking.specialRequests || '',
+        phoneNumber: booking.phoneNumber || '',
+        preOrders: booking.preOrders || [],
+        createdAt: booking.createdAt
+      };
+    });
+    
+    res.status(200).json({
+      success: true,
+      count: bookings.length,
+      data: formattedBookings
+    });
+  } catch (error) {
+    console.error('Error fetching all bookings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch bookings',
+      error: error.message
+    });
+  }
+};
 
 
 module.exports = {
   createBooking,
   getManagerBookings,
   updateBookingStatus,
+  getAllBookings,
 };

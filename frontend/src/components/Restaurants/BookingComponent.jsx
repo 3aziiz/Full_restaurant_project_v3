@@ -155,13 +155,13 @@ export default function BookingComponent({ restaurant }) {
           <p className="text-gray-700">{restaurant.location?.address || 'Address not available'}</p>
           
           {/* Map placeholder - would connect to actual map service */}
-          <div className="mt-4 rounded-lg overflow-hidden h-48 bg-gray-200">
+          {/* <div className="mt-4 rounded-lg overflow-hidden h-48 bg-gray-200">
             <img
               src="/api/placeholder/400/200"
               alt="Restaurant location map"
               className="w-full h-full object-cover"
             />
-          </div>
+          </div> */}
         </div>
   
         {/* Complete modal redesign */}

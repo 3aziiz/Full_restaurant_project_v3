@@ -10,6 +10,7 @@ import {
   Avatar,
   Input,
   IconButton,
+  Collapse,
 } from "@material-tailwind/react";
 import {
   UserCircleIcon,
@@ -19,10 +20,13 @@ import {
   LifebuoyIcon,
   PowerIcon,
   MagnifyingGlassIcon,
+  Bars3Icon,
+  XMarkIcon,
 } from "@heroicons/react/24/solid";
 import FastfoodTwoToneIcon from '@mui/icons-material/FastfoodTwoTone';
 
 import { assets } from "../../assets/assets";
+
 import "boxicons";
 import { useDispatch, useSelector } from "react-redux";
 import { useLogoutMutation, useGetProfileQuery } from "../../slices/apiSlice";
@@ -31,6 +35,64 @@ import { logout, showLogin, updateUserInfo } from "../../slices/authSlice";
 import { Html5QrcodeScanner } from "html5-qrcode";
 
 import { persistor } from "../../store";
+
+// NavList component for public navigation links
+function NavList() {
+  return (
+    <ul className="my-2 flex flex-col gap-2 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
+      <Typography
+        as="li"
+        variant="small"
+        color="blue-gray"
+        className="p-1 font-medium"
+      >
+        {/* <Link to="/" className="flex items-center hover:text-[#ff6347] transition-colors">
+          Home
+        </Link> */}
+      </Typography>
+      <Typography
+        as="li"
+        variant="small"
+        color="blue-gray"
+        className="p-1 font-medium"
+      >
+        {/* <Link to="/about" className="flex items-center hover:text-[#ff6347] transition-colors">
+          About Us
+        </Link> */}
+      </Typography>
+      {/* <Typography
+        as="li"
+        variant="small"
+        color="blue-gray"
+        className="p-1 font-medium"
+      >
+        <Link to="/restaurants" className="flex items-center hover:text-[#ff6347] transition-colors">
+          Restaurants
+        </Link>
+      </Typography> */}
+      {/* <Typography
+        as="li"
+        variant="small"
+        color="blue-gray"
+        className="p-1 font-medium"
+      >
+        <Link to="/how-it-works" className="flex items-center hover:text-[#ff6347] transition-colors">
+          How It Works
+        </Link>
+      </Typography> */}
+      <Typography
+        as="li"
+        variant="small"
+        color="blue-gray"
+        className="p-1 font-medium"
+      >
+        {/* <Link to="/contact" className="flex items-center hover:text-[#ff6347] transition-colors">
+          Contact
+        </Link> */}
+      </Typography>
+    </ul>
+  );
+}
 
 function ProfileMenu({setShowLogin}) {
   const dispatch=useDispatch();
@@ -47,16 +109,16 @@ function ProfileMenu({setShowLogin}) {
     persistor.purge();
     navigate("/");
   };
- 
+
   return (
     <Menu open={isMenuOpen} handler={setIsMenuOpen} placement="bottom-end">
       <MenuHandler>
         <Button
           variant="text"
           color="blue-gray"
-          className="flex items-center gap-1 rounded-full py-0.5 pr-2 pl-0.5"
+          className="flex items-center gap-1 rounded-full py-1 pr-3 pl-1"
         >
-         <Avatar
+        <Avatar
           variant="circular"
           size="sm"
           alt="Profile"
@@ -121,14 +183,14 @@ function ProfileMenu({setShowLogin}) {
           </Typography>
         </MenuItem>
         </Link>
-        <Link to='/vieworders'>
+        {/* <Link to='/vieworders'>
           <MenuItem className="flex items-center gap-2 rounded">
             <FastfoodTwoToneIcon sx={{fontSize:18}} />
             <Typography as="span" variant="small" className="font-normal">
               Orders
             </Typography>
           </MenuItem>
-        </Link>
+        </Link> */}
         <hr className="my-2 border-blue-gray-50" />
         <MenuItem
           onClick={handleLogout}
@@ -151,6 +213,7 @@ function ProfileMenu({setShowLogin}) {
 
 function Appbar({ setShowLogin }) {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { userInfo} = useSelector((state) => state.auth);
@@ -158,6 +221,7 @@ function Appbar({ setShowLogin }) {
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { data: userData, refetch, error } = useGetProfileQuery();
+  
   const handleLogout = async () => {
     try {
       await logoutApiCall().unwrap();
@@ -206,12 +270,15 @@ function Appbar({ setShowLogin }) {
       }
     };
   }, [isScannerActive, navigate]);
+  
   useEffect(() => {
     if (userData) {
       dispatch(updateUserInfo(userData));
     }
   }, [userData, dispatch]);
-console.log(userInfo);
+  
+  console.log(userInfo);
+  
   return (
     <div className="w-full">
       <Navbar className="w-full p-1 rounded-none shadow-none max-w-none">
@@ -219,9 +286,14 @@ console.log(userInfo);
           {/* Logo */}
           <Link to="/">
             <Typography as="div" variant="h5">
-              <img src={assets.app} alt="Scan&Dine" className="h-15 md:h-[190px] hover:scale-110" />
+              <img src={assets.firstlogo} alt="Scan&Dine" className="h-15 md:h-[190px] hover:scale-110" />
             </Typography>
           </Link>
+
+          {/* Navigation menu - desktop */}
+          <div className="hidden lg:block">
+            <NavList />
+          </div>
 
           {/* Search bar (desktop view) */}
           <div className="hidden md:flex flex-grow justify-center mx-8 max-w-2xl">
@@ -232,55 +304,35 @@ console.log(userInfo);
                 value={searchTerm}
                 onChange={handleSearch}
                 label="Search for a restaurant..."
-                className="pr-20 py-4"
+                className="pr-20"
                 containerProps={{
                   className: "min-w-[288px]",
                 }}
               />
-              {/* <Button
-                size="sm"
-                className="!absolute right-1 top-1 rounded bg-[#ff6347]"
-              >
-                Search
-              </Button> */}
             </div>
           </div>
 
+          {/* Mobile menu button */}
+          <IconButton
+            variant="text"
+            color="blue-gray"
+            className="lg:hidden"
+            onClick={() => setIsNavOpen(!isNavOpen)}
+          >
+            {isNavOpen ? (
+              <XMarkIcon className="h-6 w-6" strokeWidth={2} />
+            ) : (
+              <Bars3Icon className="h-6 w-6" strokeWidth={2} />
+            )}
+          </IconButton>
+
           {/* Icons for both mobile and desktop views */}
           <div className="flex items-center gap-6">
-            <IconButton
-              size="sm"
-              color="blue-gray"
-              variant="text"
-              className="md:hidden"
-              onClick={() => setIsSearchVisible(!isSearchVisible)}
-            >
-              <MagnifyingGlassIcon className="h-7 w-7" />
-            </IconButton>
-            <IconButton
-              size="sm"
-              color="blue-gray"
-              variant="text"
-              onClick={() => {
-                setIsScannerActive(true);
-              }}
-            >
-              <box-icon name='qr-scan' color='#6d6d6d' ></box-icon>
-            </IconButton>
-            <Link to="/cart">
-              <IconButton
-                size="sm"
-                color="blue-gray"
-                variant="text"
-              >
-                <box-icon name='shopping-bag' type='solid' flip='horizontal' color='#5a5a5a' ></box-icon>
-              </IconButton>
-            </Link>
             {!userInfo ? (
               <Button
                 size="sm"
                 onClick={() => setShowLogin(true)}
-                className="w-full bg-[#ff6347] rounded-full hover:bg-red-600 hover:shadow-red-400 p-2"
+                className="min-w-[120px] px-6 bg-[#ff6347] rounded-full hover:bg-red-600 hover:shadow-red-400 font-medium"
               >
                 Sign In
               </Button>
@@ -290,9 +342,26 @@ console.log(userInfo);
           </div>
         </div>
 
+        {/* Mobile Navigation Menu */}
+        <Collapse open={isNavOpen}>
+          <NavList />
+          
+          {/* Mobile Search */}
+          <div className="mt-2 px-4">
+            <Input
+              type="search"
+              color="red"
+              value={searchTerm}
+              onChange={handleSearch}
+              label="Search for a restaurant..."
+              className="mb-4"
+            />
+          </div>
+        </Collapse>
+
         {/* QR Scanner Modal */}
         {isScannerActive && (
-          <div className="relative mt-50 inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-gray-200 w-80 p-8 rounded-lg shadow-lg relative">
               <button
                 onClick={() => setIsScannerActive(false)}
@@ -305,8 +374,8 @@ console.log(userInfo);
           </div>
         )}
         
-        {/* Responsive search bar for mobile */}
-        {isSearchVisible && (
+        {/* Responsive search bar for mobile (alternative approach) */}
+        {isSearchVisible && !isNavOpen && (
           <div className="mt-2 md:hidden px-4">
             <div className="relative">
               <Input
@@ -319,14 +388,6 @@ console.log(userInfo);
                   className: "min-w-full",
                 }}
               />
-              {/* <Button
-                size="sm"
-                variant="outlined"
-                color="black"
-                className="!absolute right-1 top-1 rounded text-red-500"
-              >
-                Search
-              </Button> */}
             </div>
           </div>
         )}

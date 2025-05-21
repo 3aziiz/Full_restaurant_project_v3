@@ -360,20 +360,7 @@ updateBooking: builder.mutation({
   ],
 }),
 
-// Process payment for a booking
-PayBooking: builder.mutation({
-  query: ({ bookingId, paymentDetails }) => ({
-    url: `api/bookings/${bookingId}/payment`,
-    method: 'POST',
-    body: paymentDetails,
-    credentials: 'include',
-  }),
-  invalidatesTags: (result, error, arg) => [
-    { type: 'Booking', id: arg.bookingId },
-    { type: 'Booking', id: 'LIST' }
-  ],
-}),
-
+ 
 
 
 // Add the new delete booking mutation
@@ -392,6 +379,60 @@ deleteBooking: builder.mutation({
 
 
 
+
+
+
+
+// Payment endpoints
+payBooking: builder.mutation({
+  query: (data) => ({
+    url: 'api/payments/booking',
+    method: 'POST',
+    body: data,
+    credentials: 'include',
+  }),
+  // Invalidate the booking cache to ensure fresh data after payment
+  invalidatesTags: (result, error, { bookingId }) => 
+    result?.success ? [{ type: 'Booking', id: bookingId }] : []
+}),
+
+
+
+// In your apiSlice.js
+verifyPayment: builder.mutation({
+  query: (data) => {
+    console.log('verifyPayment mutation called with data:', data);
+    return {
+      url: '/api/payments/verify',
+      method: 'POST',
+      body: data,
+      credentials: 'include',
+    };
+  },
+  // Add onQueryStarted for additional debugging
+  onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+    console.log('verifyPayment query started with arg:', arg);
+    try {
+      const { data } = await queryFulfilled;
+      console.log('verifyPayment query succeeded with data:', data);
+    } catch (error) {
+      console.error('verifyPayment query failed with error:', error);
+    }
+  },
+  // Invalidate the booking cache to ensure fresh data after verification
+  invalidatesTags: (result) => 
+    result?.success ? [{ type: 'Booking' }] : []
+}),
+
+
+
+getAllBookings: builder.query({
+  query: () => ({url :'/api/bookings/allbookings',
+  providesTags: ['Bookings'],
+  credentials: 'include',
+  method: 'GET'
+  }),
+}),
 
 
 
@@ -435,4 +476,7 @@ export const {
   useUpdateBookingMutation,
   usePayBookingMutation,
   useDeleteBookingMutation,
+  useVerifyPaymentMutation,
+  useGetAllBookingsQuery,
+  
 } = apiSlice;

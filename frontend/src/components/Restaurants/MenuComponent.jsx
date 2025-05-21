@@ -113,7 +113,7 @@ function MenuItem({ item }) {
             )}
             
             <div className="absolute bottom-2 right-2 bg-orange-600 text-white font-bold px-3 py-1 rounded-full">
-              ${item.price?.toFixed(2) || 'N/A'}
+              DT {item.price?.toFixed(2) || 'N/A'}
             </div>
           </>
         ) : (
