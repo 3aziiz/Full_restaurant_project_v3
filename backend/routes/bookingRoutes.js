@@ -5,7 +5,7 @@ const {
   
 } = require('../controllers/bookingController');
 const authMiddleware = require('../middleware/authMiddleware');
-const requireAdmin = require('../middleware/requireAdmin');
+const requireManager = require('../middleware/requireManager');
 // Create a new booking
 router.post('/', authMiddleware, createBooking);
 
@@ -15,6 +15,6 @@ router.get('/myBookings', authMiddleware, getManagerBookings);
 router.get('/allbookings', authMiddleware, getAllBookings);
 
 // // Update booking status
-router.patch('/:id', authMiddleware,requireAdmin ,updateBookingStatus);
+router.patch('/:id', authMiddleware,requireManager   ,updateBookingStatus);
 
 module.exports = router;

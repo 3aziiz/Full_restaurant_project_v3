@@ -329,7 +329,6 @@ function Users() {
 
 
 
-
 function RestaurantStats() {
   const { data: restaurantsData, isLoading: restaurantsLoading, error: restaurantsError } = useGetRestaurantsQuery();
   const { data: bookingsData, isLoading: bookingsLoading, error: bookingsError } = useGetAllBookingsQuery();
@@ -365,29 +364,17 @@ function RestaurantStats() {
         averageRating
       });
 
-      // Get restaurants including "Feb" and "Mar" as restaurant names
-      // This is a simplified approach, you might need to adjust based on your actual data
-      const restaurantBookings = [];
-      
-      // Add "Feb" and "Mar" as restaurants
-      restaurantBookings.push({
-        name: "Feb",
-        bookings: 25 // Example value, adjust as needed
-      });
-      
-      restaurantBookings.push({
-        name: "Mar",
-        bookings: 38 // Example value, adjust as needed
-      });
-      
-      // Add other restaurants (up to 4 total for display)
-      restaurants.slice(0, 2).forEach(restaurant => {
-        restaurantBookings.push({
+      // Create chart data with actual restaurants and their booking counts
+      const restaurantBookings = restaurants.map(restaurant => {
+        const restaurantId = restaurant._id;
+        const bookingsCount = bookings.filter(booking => 
+          booking.restaurant?.id === restaurantId || booking.restaurantId === restaurantId
+        ).length;
+        
+        return {
           name: restaurant.name,
-          bookings: bookings.filter(booking => 
-            booking.restaurant?.id === restaurant._id || booking.restaurantId === restaurant._id
-          ).length
-        });
+          bookings: bookingsCount
+        };
       });
       
       setChartData(restaurantBookings);
@@ -445,12 +432,15 @@ function RestaurantStats() {
           <h4 className="text-lg font-medium text-gray-800 mb-4">Restaurant Bookings</h4>
           <div className="h-64 flex items-end justify-around space-x-2">
             {chartData.map((data) => (
-              <div key={data.name} className="flex flex-col items-center w-full">
+              <div key={data.name} className="flex flex-col items-center flex-1 min-w-0">
+                <div className="text-xs font-medium text-gray-700 mb-1">{data.bookings}</div>
                 <div
-                  className="bg-blue-500 rounded-t-lg w-full transition-all hover:bg-blue-600"
-                  style={{ height: `${(data.bookings / maxBookings) * 100}%` }}
+                  className="bg-blue-500 rounded-t-lg w-full transition-all hover:bg-blue-600 min-h-2"
+                  style={{ height: `${Math.max((data.bookings / maxBookings) * 180, 8)}px` }}
                 ></div>
-                <div className="text-xs font-medium text-gray-500 mt-2">{data.name}</div>
+                <div className="text-xs font-medium text-gray-500 mt-2 text-center truncate w-full" title={data.name}>
+                  {data.name}
+                </div>
               </div>
             ))}
           </div>

@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
 import './Home.css';
 import Header from '../../components/Header/Header';
-import ExploreMenu from '../../components/ExploreMenu/ExploreMenu';
-import FoodDisplay from '../../components/FoodDisplay/FoodDisplay';
-import AppDownload from '../../components/AppDownload/AppDownload';
-import OfferSlider from '../../components/OfferSlider/OfferSlider';
 import RestaurantCard from '../../components/Restaurants/RestaurantCard';
 import { useLocation } from 'react-router-dom';
-
+import RestaurantTestimonials from '../../components/Testimonials/Testimonials';
 const Home = () => {
   const [category, setCategory] = useState("All");
   const location = useLocation();
@@ -19,14 +15,11 @@ const Home = () => {
   return (
     <div className="max-w-[1400px] mx-auto px-4">
       <Header />
-      <OfferSlider />
-      {/* Uncomment the lines below if you need to use these components */}
-      {/* <ExploreMenu category={category} setCategory={setCategory} />
-      <FoodDisplay category={category} />  */}
       <RestaurantCard />
-      <AppDownload />
+      <RestaurantTestimonials />
     </div>
   );
 };
 
 export default Home;
+

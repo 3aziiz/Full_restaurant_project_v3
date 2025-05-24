@@ -31,13 +31,16 @@ export default function BookingComponent({ restaurant }) {
   
     // Book a table
     const bookTable = () => {
-      if (!userInfo) {
+      if (!userInfo ) {
         toast.warning("Please login to book a table");
         return;
       }
-      
+      if (userInfo.role == 'manager' ||userInfo.role == 'admin'  ){toast.warning("Please log in as a user to book a table.");}
+      console.log(userInfo)
       // Show booking modal
-      setShowModal(true);
+      setShowModal(false);
+      if(userInfo.role== 'user')
+        setShowModal(true);
     };
     
     // Handle input changes
