@@ -437,6 +437,26 @@ getAllBookings: builder.query({
 
 
 
+updateBirthday: builder.mutation({
+  query: (data) => ({
+    url: 'api/users/profile/birthday',
+    method: 'PUT',
+    body: { birthday: data.birthday },
+    credentials: 'include',
+  }),
+  invalidatesTags: ['User']
+}),
+
+updatePhoneNumber: builder.mutation({
+  query: (data) => ({
+    url: 'api/users/profile/phone',
+    method: 'PUT',
+    body: { phoneNumber: data.phoneNumber },
+    credentials: 'include',
+  }),
+  invalidatesTags: ['User']
+}),
+
 
   }),
 });
@@ -478,5 +498,7 @@ export const {
   useDeleteBookingMutation,
   useVerifyPaymentMutation,
   useGetAllBookingsQuery,
+  useUpdateBirthdayMutation,
+  useUpdatePhoneNumberMutation,
   
 } = apiSlice;

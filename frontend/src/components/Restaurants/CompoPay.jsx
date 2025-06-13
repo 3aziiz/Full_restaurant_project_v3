@@ -196,7 +196,7 @@ const CompoPay = ({
             )}
             <div className="border-t mt-2 pt-2 flex justify-between font-medium">
               <span>Total Amount:</span>
-              <span className="text-green-700">${calculateTotal()}</span>
+              <span className="text-green-700">DT{calculateTotal()}</span>
             </div>
             {isCompleted && (
               <div className="mt-2 pt-2 text-green-600 font-medium text-center">

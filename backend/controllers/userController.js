@@ -20,7 +20,9 @@ const getProfile = async (req, res) => {
       role: user.role,
       avatar: user.avatar,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
+      phoneNumber: user.phoneNumber,
+      birthday: user.birthday,
       // Add any other fields
     });
   } catch (error) {
@@ -239,10 +241,11 @@ const deleteReview = async (req, res) => {
       return res.status(404).json({ message: 'Review not found' });
     }
     
-    // Check if user is the author of the review
-    if (restaurant.reviews[reviewIndex].userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to delete this review' });
-    }
+    // Check if user is the author of the review OR an admin
+if (restaurant.reviews[reviewIndex].userId.toString() !== req.user._id.toString() && 
+    req.user.role !== 'admin') {
+  return res.status(403).json({ message: 'Not authorized to delete this review' });
+}
     
     // Remove the review
     restaurant.reviews.splice(reviewIndex, 1);
@@ -329,7 +332,111 @@ const updateReview = async (req, res) => {
   }
 };
 
+const updateBirthday = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    const { birthday } = req.body;
+    
+    // Validate birthday
+    if (!birthday) {
+      return res.status(400).json({ message: 'Birthday is required' });
+    }
+    
+    // Check if birthday is a valid date
+    const birthdayDate = new Date(birthday);
+    if (isNaN(birthdayDate.getTime())) {
+      return res.status(400).json({ message: 'Please provide a valid date' });
+    }
+    
+    // Check if birthday is not in the future
+    if (birthdayDate > new Date()) {
+      return res.status(400).json({ message: 'Birthday cannot be in the future' });
+    }
+    
+    // Check if user is not too old (optional validation)
+    const maxAge = 120;
+    const currentDate = new Date();
+    const age = currentDate.getFullYear() - birthdayDate.getFullYear();
+    if (age > maxAge) {
+      return res.status(400).json({ message: 'Please enter a valid birthday' });
+    }
+    
+    user.birthday = birthdayDate;
+    await user.save();
+    
+    res.status(200).json({
+      message: 'Birthday updated successfully',
+      birthday: user.birthday
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error: ' + error.message });
+  }
+};
 
+// @desc    Update user phone number
+// @route   PUT /api/users/phone
+// @access  Private
+const updatePhoneNumber = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    const { phoneNumber } = req.body;
+    
+    // Validate phone number
+    if (!phoneNumber) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+    
+    // Basic phone number validation (adjust regex based on your requirements)
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, ''); // Remove spaces, dashes, parentheses
+    
+    if (!phoneRegex.test(cleanPhone)) {
+      return res.status(400).json({ 
+        message: 'Please provide a valid phone number (numbers only, optional + for country code)' 
+      });
+    }
+    
+    if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+      return res.status(400).json({ 
+        message: 'Phone number must be between 7 and 15 digits' 
+      });
+    }
+    
+    // Check if phone number already exists (optional)
+    const existingUser = await User.findOne({ 
+      phoneNumber: cleanPhone, 
+      _id: { $ne: user._id } 
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ 
+        message: 'This phone number is already registered to another account' 
+      });
+    }
+    
+    user.phoneNumber = cleanPhone;
+    await user.save();
+    
+    res.status(200).json({
+      message: 'Phone number updated successfully',
+      phoneNumber: user.phoneNumber
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error: ' + error.message });
+  }
+};
 
 module.exports = {
   getProfile,
@@ -339,4 +446,6 @@ module.exports = {
   getReviews,
   deleteReview,
   updateReview,
+  updatePhoneNumber,
+  updateBirthday,
 };

@@ -225,11 +225,11 @@ exports.deleteRestaurant = async (req, res) => {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // Check if user owns the restaurant
-    if (restaurant.owner.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
-
+    // Check if user owns the restaurant OR is an admin
+if (restaurant.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  return res.status(401).json({ message: 'Not authorized' });
+}
+console.log('here' )
     await restaurant.deleteOne();
     res.status(200).json({ message: 'Restaurant deleted' });
   } catch (error) {

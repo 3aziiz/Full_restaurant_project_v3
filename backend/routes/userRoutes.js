@@ -1,17 +1,32 @@
 // userRoutes.js
 const express = require('express');
 const router = express.Router();
-const { getProfile ,updateAvatar,updateName,addReview, getReviews, deleteReview,updateReview} = require('../controllers/userController'); // Adjust path as needed
-const authMiddleware  = require('../middleware/authMiddleware'); // Adjust path as needed
+const { 
+  getProfile,
+  updateAvatar,
+  updateName,
+  updateBirthday,
+  updatePhoneNumber,
+  addReview, 
+  getReviews, 
+  deleteReview,
+  updateReview
+} = require('../controllers/userController'); // Adjust path as needed
+const authMiddleware = require('../middleware/authMiddleware'); // Adjust path as needed
 const { uploadAvatar } = require('../middleware/multer');
+const requireAdmin = require('../middleware/requireAdmin');
+
 // Protected route - requires authentication
 router.get('/profile', authMiddleware, getProfile);
-router.put('/profile/updateName',authMiddleware ,updateName);
-router.put('/avatar', authMiddleware, uploadAvatar.single('avatar'), updateAvatar); 
+router.put('/profile/updateName', authMiddleware, updateName);
+router.put('/profile/birthday', authMiddleware, updateBirthday);
+router.put('/profile/phone', authMiddleware, updatePhoneNumber);
+router.put('/avatar', authMiddleware, uploadAvatar.single('avatar'), updateAvatar);
 
+// Review routes
 router.post('/restaurants/:restaurantId/reviews', authMiddleware, addReview);
 router.get('/:restaurantId/reviews', getReviews);
 router.delete('/:restaurantId/reviews/:reviewId', authMiddleware, deleteReview);
-router.put('/:restaurantId/reviews/:reviewId', authMiddleware, updateReview); 
+router.put('/:restaurantId/reviews/:reviewId', authMiddleware, updateReview);
 
 module.exports = router;

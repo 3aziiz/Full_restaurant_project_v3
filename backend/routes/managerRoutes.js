@@ -3,13 +3,13 @@ const router = express.Router();
 const { createRestaurant,getAllRestaurants,getRestaurantById,deleteRestaurant ,updateRestaurant} = require('../controllers/managerController');
 const authMiddleware = require('../middleware/authMiddleware');
 const requireManager = require('../middleware/requireManager');
-
+const requireAdmin = require('../middleware/requireAdmin');
 router.post('/createRestaurant', requireManager,authMiddleware,createRestaurant);
 // Get all restaurants for users 
 router.get('/restaurants', getAllRestaurants);
 router.get('/restaurant/:id', getRestaurantById);
 // Get a restaurant by its ID for users
-router.delete('/restaurant/:id', authMiddleware,requireManager, deleteRestaurant);
+router.delete('/restaurant/:id', authMiddleware, requireManager,deleteRestaurant);
 
 router.put('/restaurant/:id', authMiddleware, requireManager, updateRestaurant);
 

@@ -20,7 +20,7 @@ function Sidebar({ setView, currentView }) {
     { id: 'restaurants', label: 'My Restaurants', icon: '🏢' },
     { id: 'create', label: 'Create Restaurant', icon: '➕' },
     { id: 'bookings', label: 'Bookings', icon: '📅' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
+    // { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
   const handlegoback = () => {
@@ -115,6 +115,10 @@ function MyRestaurants() {
     contact: ''
   });
   
+  // State for delete confirmation popup
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [restaurantToDelete, setRestaurantToDelete] = useState(null);
+  
   // Image management state
   const [currentImages, setCurrentImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
@@ -186,16 +190,31 @@ function MyRestaurants() {
     setShowEditPopup(true);
   };
 
-  const handleDelete = async (id) => {
-     {
-      try {
-        await deleteRestaurant(id).unwrap();
-        toast.success('Restaurant deleted successfully');
-        refetch();
-      } catch (err) {
-        toast.error(err?.data?.message || 'Failed to delete restaurant');
-      }
+  // Show delete confirmation popup
+  const handleDeleteClick = (restaurant) => {
+    setRestaurantToDelete(restaurant);
+    setShowDeleteConfirm(true);
+  };
+
+  // Confirm delete
+  const handleConfirmDelete = async () => {
+    if (!restaurantToDelete) return;
+    
+    try {
+      await deleteRestaurant(restaurantToDelete._id).unwrap();
+      toast.success('Restaurant deleted successfully');
+      refetch();
+      setShowDeleteConfirm(false);
+      setRestaurantToDelete(null);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to delete restaurant');
     }
+  };
+
+  // Cancel delete
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setRestaurantToDelete(null);
   };
   
   const handleFormChange = (e) => {
@@ -481,7 +500,7 @@ function MyRestaurants() {
                     Edit
                   </Button>
                   <Button
-                    onClick={() => handleDelete(restaurant._id)}
+                    onClick={() => handleDeleteClick(restaurant)}
                     className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 flex-1"
                   >
                     Delete
@@ -490,6 +509,45 @@ function MyRestaurants() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && restaurantToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              
+              <h3 className="text-lg font-medium text-gray-900 text-center mb-2">
+                Delete Restaurant
+              </h3>
+              
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Are you sure you want to delete "<span className="font-medium text-gray-900">{restaurantToDelete.name}</span>"? 
+                This action cannot be undone and will permanently remove all restaurant data including menu items and images.
+              </p>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleCancelDelete}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       
@@ -763,7 +821,7 @@ function MyRestaurants() {
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Price ($)*
+                          Price (DT)*
                         </label>
                         <input
                           type="number"
@@ -1170,7 +1228,7 @@ function CreateRestaurant() {
                           <p className="text-sm text-gray-500">{item.category || "Category"}</p>
                         </div>
                         <div className="text-lg font-semibold text-green-600">
-                          {item.price ? `$${item.price}` : "$0.00"}
+                          {item.price ? `DT${item.price}` : "$0.00"}
                         </div>
                       </div>
                       <p className="text-gray-600 mt-2">{item.description || "Item description"}</p>
@@ -1411,7 +1469,7 @@ function CreateRestaurant() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Price*</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <span className="text-gray-500">$</span>
+                        <span className="text-gray-500"></span>
                       </div>
                       <input 
                         type="number" 
@@ -1890,7 +1948,7 @@ export default function ManagerDashboard() {
   if (view === 'restaurants') Content = <MyRestaurants />;
   else if (view === 'create') Content = <CreateRestaurant />;
   else if (view === 'bookings') Content = <Bookings />;
-  else if (view === 'settings') Content = <Settings />;
+  // else if (view === 'settings') Content = <Settings />;
 
   return (
     <div className="flex min-h-screen bg-gray-100">

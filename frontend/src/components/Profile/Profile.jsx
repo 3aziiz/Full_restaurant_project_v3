@@ -1,5 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useGetProfileQuery, useUpdateAvatarMutation, useUpdateNameMutation } from "../../slices/apiSlice";
+import { 
+  useGetProfileQuery, 
+  useUpdateAvatarMutation, 
+  useUpdateNameMutation,
+  useUpdateBirthdayMutation,
+  useUpdatePhoneNumberMutation
+} from "../../slices/apiSlice";
 import {
   Card,
   CardHeader,
@@ -23,17 +29,23 @@ import {
   PhotoIcon,
   XMarkIcon,
   CheckIcon,
+  PhoneIcon,
+  CakeIcon,
+  KeyIcon,
 } from "@heroicons/react/24/solid";
 import { assets } from "../../assets/assets";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import ChangePassword from "../ForgetPassword/ChangePassword"; // Import your ChangePassword component
 
 const Profile = () => {
   const { user } = useSelector((state) => state.auth);
   const { data: userData, isLoading, refetch, error } = useGetProfileQuery();
   const [updateAvatar, { isLoading: isUpdatingAvatar }] = useUpdateAvatarMutation();
-  const [updateName, { isLoading: isUpdatingProfile }] = useUpdateNameMutation();
+  const [updateName, { isLoading: isUpdatingName }] = useUpdateNameMutation();
+  const [updateBirthday, { isLoading: isUpdatingBirthday }] = useUpdateBirthdayMutation();
+  const [updatePhoneNumber, { isLoading: isUpdatingPhone }] = useUpdatePhoneNumberMutation();
   const fileInputRef = useRef(null);
   
   // State for avatar
@@ -41,16 +53,28 @@ const Profile = () => {
   const [uploadError, setUploadError] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   
-  // State for name editing
-  const [openNameDialog, setOpenNameDialog] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [nameError, setNameError] = useState("");
+  // State for edit mode
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
+  
+  // State for individual field editing
+  const [editingField, setEditingField] = useState(null);
+  const [fieldValues, setFieldValues] = useState({
+    name: "",
+    phoneNumber: "",
+    birthday: ""
+  });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Initialize states from userData when it's available
   useEffect(() => {
     if (userData) {
       setAvatar(userData.avatar);
-      setNewName(userData.name);
+      setFieldValues({
+        name: userData.name || "",
+        phoneNumber: userData.phoneNumber || "",
+        birthday: userData.birthday ? userData.birthday.split('T')[0] : ""
+      });
     }
   }, [userData]);
 
@@ -60,50 +84,132 @@ const Profile = () => {
     }
   }, [user, refetch]);
 
-  const handleOpenNameDialog = () => {
-    setNewName(userData.name);
-    setNameError("");
-    setOpenNameDialog(true);
+  const handleToggleEditMode = () => {
+    setIsEditMode(!isEditMode);
+    setEditingField(null);
+    setFieldErrors({});
   };
-  
-  const handleCloseNameDialog = () => {
-    setOpenNameDialog(false);
-  };
-
-  const handleNameChange = (e) => {
-    setNewName(e.target.value);
+console.log(userData)
+  const handleOpenPasswordDialog = () => {
+    setOpenPasswordDialog(true);
   };
 
-  const handleUpdateName = async () => {
-    // Validate name
-    if (!newName.trim()) {
-      setNameError("Name cannot be empty");
+  const handleClosePasswordDialog = () => {
+    setOpenPasswordDialog(false);
+  };
+
+  const handleStartEditField = (field) => {
+    setEditingField(field);
+    setFieldValues(prev => ({
+      ...prev,
+      [field]: field === 'name' ? userData.name || "" : 
+               field === 'phoneNumber' ? userData.phoneNumber || "" :
+               field === 'birthday' ? (userData.birthday ? userData.birthday.split('T')[0] : "") : ""
+    }));
+    setFieldErrors({});
+  };
+
+  const handleCancelEdit = () => {
+    setEditingField(null);
+    setFieldErrors({});
+  };
+
+  const handleFieldChange = (field, value) => {
+    setFieldValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => ({
+        ...prev,
+        [field]: ""
+      }));
+    }
+  };
+
+  const validateField = (field, value) => {
+    switch (field) {
+      case 'name':
+        if (!value.trim()) return "Name cannot be empty";
+        if (value.trim().length < 2) return "Name must be at least 2 characters";
+        break;
+      case 'phoneNumber':
+        if (value && !/^\+?[\d\s\-\(\)]{7,15}$/.test(value.replace(/[\s\-\(\)]/g, ''))) {
+          return "Please enter a valid phone number (7-15 digits)";
+        }
+        break;
+      case 'birthday':
+        if (value) {
+          const birthDate = new Date(value);
+          const today = new Date();
+          if (birthDate > today) return "Birthday cannot be in the future";
+          
+          const age = today.getFullYear() - birthDate.getFullYear();
+          if (age > 120) return "Please enter a valid birthday";
+        }
+        break;
+      default:
+        break;
+    }
+    return "";
+  };
+
+  const handleSaveField = async (field) => {
+    const error = validateField(field, fieldValues[field]);
+    if (error) {
+      setFieldErrors({ [field]: error });
       return;
     }
-    
-    if (newName.trim().length < 2) {
-      setNameError("Name must be at least 2 characters");
-      return;
-    }
-    
+
     try {
-      await updateName({
-        userId: userData._id,
-        name: newName.trim()
-      }).unwrap();
+      switch (field) {
+        case 'name':
+          await updateName({
+            name: fieldValues.name.trim()
+          }).unwrap();
+          toast.success("Name updated successfully");
+          break;
+        case 'phoneNumber':
+          await updatePhoneNumber({
+            phoneNumber: fieldValues.phoneNumber.trim()
+          }).unwrap();
+          toast.success("Phone number updated successfully");
+          break;
+        case 'birthday':
+          await updateBirthday({
+            birthday: fieldValues.birthday
+          }).unwrap();
+          toast.success("Birthday updated successfully");
+          break;
+        default:
+          break;
+      }
       
-      // Close dialog and refetch user data
-      setOpenNameDialog(false);
+      setEditingField(null);
       refetch();
-      toast.success("name updated successfully"); 
     } catch (error) {
-      console.error("Error updating name:", error);
-      setNameError("Failed to update name. Please try again.");
+      console.error(`Error updating ${field}:`, error);
+      const errorMessage = error?.data?.message || `Failed to update ${field}. Please try again.`;
+      setFieldErrors({ [field]: errorMessage });
+      toast.error(errorMessage);
+    }
+  };
+
+  const getFieldLoadingState = (field) => {
+    switch (field) {
+      case 'name':
+        return isUpdatingName;
+      case 'phoneNumber':
+        return isUpdatingPhone;
+      case 'birthday':
+        return isUpdatingBirthday;
+      default:
+        return false;
     }
   };
 
   const handleAvatarButtonClick = () => {
-    // This triggers the hidden file input
     fileInputRef.current.click();
   };
 
@@ -116,12 +222,10 @@ const Profile = () => {
         const img = new Image();
         img.src = event.target.result;
         img.onload = () => {
-          // Create canvas
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
           
-          // Calculate new dimensions to maintain aspect ratio
           if (width > height) {
             if (width > maxWidth) {
               height = Math.round((height * maxWidth) / width);
@@ -137,11 +241,9 @@ const Profile = () => {
           canvas.width = width;
           canvas.height = height;
           
-          // Draw image on canvas
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Convert to Blob
           canvas.toBlob(
             (blob) => {
               if (!blob) {
@@ -149,7 +251,6 @@ const Profile = () => {
                 return;
               }
               
-              // Create a new file from the blob
               const compressedFile = new File([blob], file.name, {
                 type: file.type,
                 lastModified: Date.now(),
@@ -184,7 +285,6 @@ const Profile = () => {
       return;
     }
     
-    // Validate file type
     const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!validImageTypes.includes(file.type)) {
       setUploadError("Please select a valid image file (JPEG, PNG, GIF, or WEBP)");
@@ -192,27 +292,19 @@ const Profile = () => {
     }
     
     try {
-      // Clear previous errors
       setUploadError(null);
       
-      // Compress the image
       const compressed = await compressImage(file, 400, 400, 0.7);
-      
-      // Update preview with compressed image
       setPreviewUrl(compressed.dataUrl);
       
-      // Update the avatar using the mutation
       const response = await updateAvatar({
         userId: userData._id,
-        avatar: compressed.dataUrl  // Send base64 string directly if your API supports it
+        avatar: compressed.dataUrl
       }).unwrap();
       
-      // On successful update
       setAvatar(response.avatar || compressed.dataUrl);
-      
-      // Refetch to get updated user data
       refetch();
-      toast.success("updated with success");
+      toast.success("Avatar updated successfully");
     } catch (error) {
       console.error("Error updating avatar:", error);
       setUploadError("Failed to update avatar. Image may be too large.");
@@ -295,7 +387,6 @@ const Profile = () => {
                 </div>
               </div>
               
-              {/* Hidden file input */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -340,86 +431,118 @@ const Profile = () => {
                 icon={<EnvelopeIcon className="h-6 w-6" />}
                 label="Email"
                 value={userData.email}
+                isEditMode={false} // Email is always read-only
               />
+              
+              <EditableProfileItem
+                icon={<PencilIcon className="h-6 w-6" />}
+                label="Name"
+                value={userData.name}
+                fieldKey="name"
+                isEditMode={isEditMode}
+                isEditing={editingField === 'name'}
+                editValue={fieldValues.name}
+                error={fieldErrors.name}
+                onStartEdit={handleStartEditField}
+                onCancel={handleCancelEdit}
+                onSave={handleSaveField}
+                onChange={handleFieldChange}
+                isLoading={getFieldLoadingState('name')}
+                type="text"
+              />
+              
+              <EditableProfileItem
+                icon={<PhoneIcon className="h-6 w-6" />}
+                label="Phone"
+                value={userData.phoneNumber || "Not provided"}
+                fieldKey="phoneNumber"
+                isEditMode={isEditMode}
+                isEditing={editingField === 'phoneNumber'}
+                editValue={fieldValues.phoneNumber}
+                error={fieldErrors.phoneNumber}
+                onStartEdit={handleStartEditField}
+                onCancel={handleCancelEdit}
+                onSave={handleSaveField}
+                onChange={handleFieldChange}
+                isLoading={getFieldLoadingState('phoneNumber')}
+                type="tel"
+                placeholder="+1234567890"
+              />
+              
+              <EditableProfileItem
+                icon={<CakeIcon className="h-6 w-6" />}
+                label="Birthday"
+                value={userData.birthday ? formatDate(userData.birthday) : "Not provided"}
+                fieldKey="birthday"
+                isEditMode={isEditMode}
+                isEditing={editingField === 'birthday'}
+                editValue={fieldValues.birthday}
+                error={fieldErrors.birthday}
+                onStartEdit={handleStartEditField}
+                onCancel={handleCancelEdit}
+                onSave={handleSaveField}
+                onChange={handleFieldChange}
+                isLoading={getFieldLoadingState('birthday')}
+                type="date"
+              />
+              
               <ProfileItem
                 icon={<CalendarIcon className="h-6 w-6" />}
                 label="Member Since"
                 value={formatDate(userData.createdAt)}
+                isEditMode={false}
               />
+              
               <ProfileItem
                 icon={<ClockIcon className="h-6 w-6" />}
                 label="Last Updated"
                 value={formatDate(userData.updatedAt)}
-              />
-              <ProfileItem
-                icon={<IdentificationIcon className="h-6 w-6" />}
-                label="User ID"
-                value={userData._id}
+                isEditMode={false}
               />
             </div>
           </CardBody>
 
-          <CardFooter className="flex justify-center pt-2 pb-6">
+          <CardFooter className="flex justify-center gap-4 pt-2 pb-6">
             <Button
               size="lg"
-              color="blue-gray"
-              className="flex items-center gap-3 px-6 py-3 bg-blue-gray-800 hover:bg-blue-gray-900 transition-all duration-300"
-              onClick={handleOpenNameDialog}
+              color={isEditMode ? "red" : "blue-gray"}
+              className="flex items-center gap-3 px-6 py-3 transition-all duration-300"
+              onClick={handleToggleEditMode}
             >
-              <PencilIcon strokeWidth={2} className="h-5 w-5" /> Edit Name
+              {isEditMode ? (
+                <>
+                  <XMarkIcon strokeWidth={2} className="h-5 w-5" /> Cancel Edit
+                </>
+              ) : (
+                <>
+                  <PencilIcon strokeWidth={2} className="h-5 w-5" /> Edit Profile
+                </>
+              )}
+            </Button>
+            <Button
+              size="lg"
+              color="orange"
+              className="flex items-center gap-3 px-6 py-3 bg-orange-600 hover:bg-orange-700 transition-all duration-300"
+              onClick={handleOpenPasswordDialog}
+            >
+              <KeyIcon strokeWidth={2} className="h-5 w-5" /> Change Password
             </Button>
           </CardFooter>
         </Card>
       </div>
-      
-      {/* Name Edit Dialog */}
-      <Dialog open={openNameDialog} handler={handleCloseNameDialog}>
+
+      {/* Change Password Dialog */}
+      <Dialog open={openPasswordDialog} handler={handleClosePasswordDialog} size="lg">
         <DialogHeader className="flex justify-between items-center">
-          <Typography variant="h5">Edit Your Name</Typography>
+          <Typography variant="h5">Change Password</Typography>
           <XMarkIcon 
             className="h-5 w-5 cursor-pointer" 
-            onClick={handleCloseNameDialog}
+            onClick={handleClosePasswordDialog}
           />
         </DialogHeader>
-        <DialogBody divider>
-          <div className="mb-4">
-            <Input
-              label="Name"
-              value={newName}
-              onChange={handleNameChange}
-              error={!!nameError}
-            />
-            {nameError && (
-              <Typography color="red" className="mt-2 text-xs">
-                {nameError}
-              </Typography>
-            )}
-          </div>
+        <DialogBody divider className="p-0">
+          <ChangePassword onClose={handleClosePasswordDialog} />
         </DialogBody>
-        <DialogFooter className="flex justify-end gap-2">
-          <Button 
-            variant="outlined" 
-            color="red" 
-            onClick={handleCloseNameDialog} 
-            className="flex items-center gap-2"
-          >
-            <XMarkIcon className="h-4 w-4" /> Cancel
-          </Button>
-          <Button 
-            color="green" 
-            onClick={handleUpdateName} 
-            className="flex items-center gap-2"
-            disabled={isUpdatingProfile}
-          >
-            {isUpdatingProfile ? (
-              <span>Updating...</span>
-            ) : (
-              <>
-                <CheckIcon className="h-4 w-4" /> Save
-              </>
-            )}
-          </Button>
-        </DialogFooter>
       </Dialog>
     </>
   );
@@ -428,13 +551,101 @@ const Profile = () => {
 const ProfileItem = ({ icon, label, value }) => (
   <div className="flex items-center p-4 bg-white rounded-lg shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105">
     <div className="mr-4 text-blue-gray-500">{icon}</div>
-    <div>
+    <div className="flex-1">
       <Typography variant="h6" color="blue-gray" className="mb-1">
         {label}
       </Typography>
       <Typography variant="small" className="text-slate-700 font-medium">
         {value}
       </Typography>
+    </div>
+  </div>
+);
+
+const EditableProfileItem = ({ 
+  icon, 
+  label, 
+  value, 
+  fieldKey, 
+  isEditMode, 
+  isEditing, 
+  editValue, 
+  error, 
+  onStartEdit, 
+  onCancel, 
+  onSave, 
+  onChange, 
+  isLoading,
+  type = "text",
+  placeholder 
+}) => (
+  <div className="flex items-center p-4 bg-white rounded-lg shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105">
+    <div className="mr-4 text-blue-gray-500">{icon}</div>
+    <div className="flex-1">
+      <Typography variant="h6" color="blue-gray" className="mb-1">
+        {label}
+      </Typography>
+      
+      {isEditing ? (
+        <div className="space-y-2">
+          <Input
+            type={type}
+            value={editValue}
+            onChange={(e) => onChange(fieldKey, e.target.value)}
+            error={!!error}
+            placeholder={placeholder}
+            size="sm"
+          />
+          {error && (
+            <Typography color="red" className="text-xs">
+              {error}
+            </Typography>
+          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              color="green"
+              onClick={() => onSave(fieldKey)}
+              disabled={isLoading}
+              className="flex items-center gap-1"
+            >
+              {isLoading ? (
+                <span>Saving...</span>
+              ) : (
+                <>
+                  <CheckIcon className="h-3 w-3" /> Save
+                </>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outlined"
+              color="red"
+              onClick={onCancel}
+              className="flex items-center gap-1"
+            >
+              <XMarkIcon className="h-3 w-3" /> Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <Typography variant="small" className="text-slate-700 font-medium">
+            {value}
+          </Typography>
+          {isEditMode && (
+            <Button
+              size="sm"
+              variant="outlined"
+              color="blue"
+              onClick={() => onStartEdit(fieldKey)}
+              className="ml-2"
+            >
+              <PencilIcon className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   </div>
 );
