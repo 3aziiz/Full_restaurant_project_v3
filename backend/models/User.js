@@ -30,10 +30,10 @@ const userSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: '', // or provide a default profile picture URL
+    default: '', 
   },
   
-  // New fields for birthday and phone number
+ 
   birthday: {
     type: Date,
     default: null,

@@ -5,7 +5,7 @@ const controller = require('../controllers/managerRequestController');
 
 
 
-// ✅ Submit a manager request with image upload
+//  Submit a manager request
 router.post('/createRequest',controller.createRequest);
 
 

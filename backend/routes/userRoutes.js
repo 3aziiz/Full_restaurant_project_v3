@@ -14,7 +14,7 @@ const {
 } = require('../controllers/userController'); // Adjust path as needed
 const authMiddleware = require('../middleware/authMiddleware'); // Adjust path as needed
 const { uploadAvatar } = require('../middleware/multer');
-const requireAdmin = require('../middleware/requireAdmin');
+
 
 // Protected route - requires authentication
 router.get('/profile', authMiddleware, getProfile);

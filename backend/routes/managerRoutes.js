@@ -3,7 +3,9 @@ const router = express.Router();
 const { createRestaurant,getAllRestaurants,getRestaurantById,deleteRestaurant ,updateRestaurant} = require('../controllers/managerController');
 const authMiddleware = require('../middleware/authMiddleware');
 const requireManager = require('../middleware/requireManager');
-const requireAdmin = require('../middleware/requireAdmin');
+
+
+
 router.post('/createRestaurant', requireManager,authMiddleware,createRestaurant);
 // Get all restaurants for users 
 router.get('/restaurants', getAllRestaurants);

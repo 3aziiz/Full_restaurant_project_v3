@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-// Review Schema embedded within Restaurant
+// Review Schema 
 const ReviewSchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
@@ -18,7 +18,7 @@ const ReviewSchema = new Schema({
   },
   userAvatar: {
     type: String,
-    default: '' // Default avatar URL or empty string
+    default: '' 
   },
   rating: {
     type: Number,
@@ -37,7 +37,7 @@ const ReviewSchema = new Schema({
   }
 }, { timestamps: true });
 
-// Simplified Menu Item schema that matches form data
+// Menu Item schema 
 const MenuItemSchema = new Schema({
   name: {
     type: String,

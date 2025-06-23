@@ -1,6 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { apiSlice } from "./slices/apiSlice";
-import cartSliceReducer from "./slices/cartSlice";
 import authSliceReducer from "./slices/authSlice";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage"; // Default storage for web
@@ -16,7 +15,6 @@ const persistConfig = {
 // Combine reducers
 const rootReducer = combineReducers({
   [apiSlice.reducerPath]: apiSlice.reducer,
-  cart: cartSliceReducer,
   auth: persistReducer(persistConfig, authSliceReducer), // Apply persistence to auth slice
 });
 
